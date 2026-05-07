@@ -3,91 +3,72 @@ import { Link, useLocation } from "wouter";
 
 const navLinks = [
   { path: "/", label: "DASHBOARD" },
-  { path: "/fno", label: "F&O TERMINAL" },
+  { path: "/option-chain", label: "OPTION CHAIN" },
+  { path: "/signals", label: "TRADE SIGNALS" },
+  { path: "/market-watch", label: "MARKET WATCH" },
   { path: "/market-pulse", label: "MARKET PULSE" },
-  { path: "/signals", label: "SIGNALS" },
-  { path: "/risk", label: "RISK ENGINE" },
+  { path: "/analysis", label: "ANALYSIS" },
+  { path: "/ai-brain", label: "AI BRAIN" },
 ];
 
 export default function Navigation() {
   const [location] = useLocation();
   const [time, setTime] = useState(new Date());
-  const [autoMode, setAutoMode] = useState(false);
-  const [killActive, setKillActive] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  const isMarketOpen = () => {
-    const h = time.getHours(), m = time.getMinutes();
-    const mins = h * 60 + m;
-    return mins >= 555 && mins <= 930; // 9:15 AM to 3:30 PM IST
-  };
+  const istTime = time.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
+  const istHour = parseInt(istTime.split(":")[0]);
+  const istMin = parseInt(istTime.split(":")[1]);
+  const totalMins = istHour * 60 + istMin;
+  const isMarketOpen = totalMins >= 555 && totalMins <= 930;
 
   return (
     <header className="terminal-header sticky top-0 z-50">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[rgba(0,255,180,0.08)]">
+        {/* Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(168,100%,40%)] to-[hsl(200,100%,50%)] flex items-center justify-center text-black font-bold text-xs">EA</div>
-            <div>
-              <div className="text-[10px] text-[hsl(168,100%,50%)] font-bold tracking-widest">ELTON'S ALADIN</div>
-              <div className="text-[8px] text-[hsl(220,20%,45%)] tracking-wider">AI TRADING TERMINAL v3.0</div>
-            </div>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[hsl(168,100%,40%)] to-[hsl(200,100%,50%)] flex items-center justify-center text-black font-black text-xs">EA</div>
+          <div>
+            <div className="text-[11px] text-[hsl(168,100%,50%)] font-black tracking-widest">ELTON'S ALADIN</div>
+            <div className="text-[8px] text-[hsl(220,20%,40%)] tracking-wider">ALADDIN AI TRADING TERMINAL v3.0</div>
           </div>
         </div>
 
-        {/* Market status & time */}
+        {/* Market status */}
         <div className="flex items-center gap-4 text-[10px]">
           <div className="flex items-center gap-1.5">
-            <div className={`w-1.5 h-1.5 rounded-full pulse-dot ${isMarketOpen() ? "status-live" : "status-warning"}`}></div>
-            <span className={isMarketOpen() ? "neon-green" : "text-[hsl(45,100%,55%)]"}>
-              {isMarketOpen() ? "MARKET OPEN" : "MARKET CLOSED"}
+            <div className={`w-1.5 h-1.5 rounded-full pulse-dot ${isMarketOpen ? "status-live" : "bg-[hsl(45,100%,55%)]"}`}></div>
+            <span className={`font-bold ${isMarketOpen ? "neon-green" : "text-[hsl(45,100%,55%)]"}`}>
+              {isMarketOpen ? "● MARKET OPEN" : "● MARKET CLOSED"}
             </span>
           </div>
-          <div className="text-[hsl(220,20%,50%)]">NSE | BSE | MCX</div>
+          <div className="text-[hsl(220,20%,40%)] hidden sm:block">NSE | BSE | MCX</div>
           <div className="text-[hsl(168,100%,50%)] font-bold tabular-nums">
-            {time.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour12: false })} IST
+            {istTime} IST
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-3">
-          {/* Auto toggle */}
-          <button
-            onClick={() => setAutoMode(!autoMode)}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[10px] font-bold tracking-wider border transition-all ${
-              autoMode
-                ? "bg-[rgba(0,255,180,0.15)] border-[hsl(168,100%,50%)] neon-green"
-                : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.1)] text-[hsl(220,20%,45%)]"
-            }`}
-          >
-            <div className={`w-1.5 h-1.5 rounded-full ${autoMode ? "status-live pulse-dot" : "bg-[hsl(220,20%,30%)]"}`}></div>
-            AUTO {autoMode ? "ON" : "OFF"}
-          </button>
-
-          {/* Kill switch */}
-          <button
-            onClick={() => setKillActive(!killActive)}
-            className={`px-3 py-1 rounded text-[10px] font-bold tracking-wider border transition-all ${
-              killActive
-                ? "bg-[rgba(255,50,50,0.3)] border-[hsl(0,90%,55%)] text-[hsl(0,90%,65%)]"
-                : "kill-switch text-[hsl(0,80%,60%)]"
-            }`}
-          >
-            ⚠ KILL SWITCH {killActive ? "ARMED" : "SAFE"}
-          </button>
+        {/* Data sources badge */}
+        <div className="hidden lg:flex items-center gap-2 text-[8px] text-[hsl(220,20%,35%)]">
+          <span className="text-[hsl(168,100%,40%)]">●</span>
+          <span>NSE LIVE</span>
+          <span className="text-[hsl(168,100%,40%)]">●</span>
+          <span>YAHOO FINANCE</span>
+          <span className="text-[hsl(168,100%,40%)]">●</span>
+          <span>ALADDIN AI</span>
         </div>
       </div>
 
       {/* Nav links */}
-      <nav className="flex items-center gap-0 px-4">
+      <nav className="flex items-center gap-0 px-2 overflow-x-auto">
         {navLinks.map(({ path, label }) => (
           <Link key={path} href={path}
-            className={`px-4 py-2.5 text-[10px] font-bold tracking-widest transition-all cursor-pointer border-b-2 ${
+            className={`px-3 py-2.5 text-[9px] font-bold tracking-widest transition-all cursor-pointer border-b-2 whitespace-nowrap ${
               location === path
                 ? "nav-active"
                 : "text-[hsl(220,20%,45%)] border-transparent hover:text-[hsl(180,60%,70%)] hover:border-[rgba(0,255,180,0.3)]"
@@ -95,7 +76,7 @@ export default function Navigation() {
             {label}
           </Link>
         ))}
-        <div className="ml-auto flex items-center gap-2 text-[9px] text-[hsl(220,20%,35%)]">
+        <div className="ml-auto flex items-center gap-2 text-[8px] text-[hsl(220,20%,30%)] px-3 whitespace-nowrap">
           <span>POWERED BY ALADDIN AI</span>
           <span className="text-[hsl(168,100%,40%)]">●</span>
           <span>MULTI-AGENT ARCHITECTURE</span>

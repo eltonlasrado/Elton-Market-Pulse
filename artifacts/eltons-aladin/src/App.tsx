@@ -4,18 +4,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Navigation from "@/components/Navigation";
 import TickerStrip from "@/components/TickerStrip";
 import Dashboard from "@/pages/Dashboard";
-import FnoTerminal from "@/pages/FnoTerminal";
-import MarketPulse from "@/pages/MarketPulse";
+import OptionChain from "@/pages/OptionChain";
 import Signals from "@/pages/Signals";
-import RiskEngine from "@/pages/RiskEngine";
+import MarketWatch from "@/pages/MarketWatch";
+import MarketPulse from "@/pages/MarketPulse";
+import Analysis from "@/pages/Analysis";
+import AiBrain from "@/pages/AiBrain";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      retry: 2,
-      staleTime: 15000,
-    }
-  }
+    queries: { retry: 1, staleTime: 10000 },
+  },
 });
 
 function NotFound() {
@@ -38,17 +37,19 @@ function Router() {
       <main className="flex-1">
         <Switch>
           <Route path="/" component={Dashboard} />
-          <Route path="/fno" component={FnoTerminal} />
-          <Route path="/market-pulse" component={MarketPulse} />
+          <Route path="/option-chain" component={OptionChain} />
           <Route path="/signals" component={Signals} />
-          <Route path="/risk" component={RiskEngine} />
+          <Route path="/market-watch" component={MarketWatch} />
+          <Route path="/market-pulse" component={MarketPulse} />
+          <Route path="/analysis" component={Analysis} />
+          <Route path="/ai-brain" component={AiBrain} />
           <Route component={NotFound} />
         </Switch>
       </main>
-      <footer className="border-t border-[rgba(0,255,180,0.08)] py-2 px-4 flex items-center justify-between text-[8px] text-[hsl(220,20%,30%)]">
+      <footer className="border-t border-[rgba(0,255,180,0.06)] py-2 px-4 flex items-center justify-between text-[8px] text-[hsl(220,20%,25%)]">
         <span>ELTON'S ALADIN — ALADDIN AI TRADING TERMINAL v3.0</span>
+        <span className="hidden sm:block">DATA: NSE • BSE • YAHOO FINANCE • MONEYCONTROL • ET • LIVEMINT • BS</span>
         <span>FOR EDUCATIONAL PURPOSES ONLY • NOT FINANCIAL ADVICE</span>
-        <span>MULTI-AGENT AI ARCHITECTURE • NSE • BSE • MCX</span>
       </footer>
     </div>
   );

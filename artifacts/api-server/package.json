@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.0",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "cookie-parser": "^1.4.7",
@@ -18,6 +19,7 @@
     "express": "^5",
     "pino": "^9",
     "pino-http": "^10",
+    "rss-parser": "^3.13.0",
     "yahoo-finance2": "^3.14.0"
   },
   "devDependencies": {

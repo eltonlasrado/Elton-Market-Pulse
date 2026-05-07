@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import TradingViewWidget from "@/components/TradingViewWidget";
-import { fetchQuotes } from "@/lib/api";
+import { fetchQuotes, fetchFiiDii, fetchNews, fetchMovers, formatVolume } from "@/lib/api";
 
 interface Quote {
   symbol: string;
@@ -12,161 +12,168 @@ interface Quote {
 }
 
 const SECTORS = [
-  { name: "BANKING", symbol: "^NSEBANK", change: 1.24, stocks: ["HDFCBANK.NS","ICICIBANK.NS","SBIN.NS","AXISBANK.NS","KOTAKBANK.NS"], tvSym: "NSE:BANKNIFTY" },
-  { name: "IT", symbol: "^CNXIT", change: 0.87, stocks: ["TCS.NS","INFY.NS","WIPRO.NS","HCLTECH.NS"], tvSym: "NSE:NIFTYIT" },
-  { name: "AUTO", symbol: "^CNXAUTO", change: 2.14, stocks: ["MARUTI.NS","TATAMOTORS.NS","BAJAJ-AUTO.NS"], tvSym: "NSE:NIFTYAUTO" },
-  { name: "PHARMA", symbol: "^CNXPHARMA", change: -0.43, stocks: ["SUNPHARMA.NS","DRREDDY.NS","CIPLA.NS"], tvSym: "NSE:NIFTYPHARMA" },
-  { name: "ENERGY", symbol: "^CNXENERGY", change: 1.65, stocks: ["RELIANCE.NS","ONGC.NS","NTPC.NS","POWERGRID.NS"], tvSym: "NSE:NIFTYENERGY" },
-  { name: "METALS", symbol: "^CNXMETAL", change: -1.02, stocks: ["TATASTEEL.NS","JSWSTEEL.NS","HINDALCO.NS"], tvSym: "NSE:NIFTYMETAL" },
-  { name: "FMCG", symbol: "^CNXFMCG", change: 0.31, stocks: ["HINDUNILVR.NS","ITC.NS","NESTLE.NS"], tvSym: "NSE:NIFTYFMCG" },
-  { name: "REALTY", symbol: "^CNXREALTY", change: 3.21, stocks: ["DLF.NS","GODREJPROP.NS","OBEROIRLTY.NS"], tvSym: "NSE:NIFTYREALTY" },
-];
-
-// Static FII/DII data (live data requires BSE subscription)
-const FII_DII_DATA = [
-  { date: "07 May", fii: 2840, dii: -1120, niftyChg: 1.24 },
-  { date: "06 May", fii: -850, dii: 1640, niftyChg: -0.32 },
-  { date: "05 May", fii: 4230, dii: -2100, niftyChg: 1.87 },
-  { date: "02 May", fii: -1540, dii: 2350, niftyChg: -0.54 },
-  { date: "01 May", fii: 3120, dii: -980, niftyChg: 0.93 },
-  { date: "30 Apr", fii: -2890, dii: 3100, niftyChg: -1.12 },
-  { date: "29 Apr", fii: 5480, dii: -1870, niftyChg: 2.14 },
+  { name: "BANKING", symbols: ["HDFCBANK.NS","ICICIBANK.NS","SBIN.NS","AXISBANK.NS","KOTAKBANK.NS"], color: "hsl(168,80%,45%)" },
+  { name: "IT", symbols: ["TCS.NS","INFY.NS","WIPRO.NS","HCLTECH.NS"], color: "hsl(200,80%,55%)" },
+  { name: "AUTO", symbols: ["MARUTI.NS","TATAMOTORS.NS","BAJAJ-AUTO.NS"], color: "hsl(45,100%,55%)" },
+  { name: "PHARMA", symbols: ["SUNPHARMA.NS","DRREDDY.NS","CIPLA.NS"], color: "hsl(280,80%,65%)" },
+  { name: "ENERGY", symbols: ["RELIANCE.NS","ONGC.NS","NTPC.NS","POWERGRID.NS"], color: "hsl(30,90%,55%)" },
+  { name: "METALS", symbols: ["TATASTEEL.NS","JSWSTEEL.NS","HINDALCO.NS"], color: "hsl(0,70%,55%)" },
+  { name: "FMCG", symbols: ["HINDUNILVR.NS","ITC.NS","NESTLEIND.NS"], color: "hsl(120,60%,50%)" },
+  { name: "REALTY", symbols: ["DLF.NS","GODREJPROP.NS"], color: "hsl(60,80%,55%)" },
 ];
 
 const MACRO_DATA = [
-  { label: "USD/INR", value: "83.45", change: "+0.12", type: "FOREX" },
-  { label: "EUR/INR", value: "90.23", change: "-0.05", type: "FOREX" },
-  { label: "GOLD (₹/10g)", value: "72,450", change: "+320", type: "COMMODITY" },
-  { label: "CRUDE WTI", value: "$82.40", change: "+0.85", type: "COMMODITY" },
-  { label: "BRENT", value: "$85.20", change: "+0.92", type: "COMMODITY" },
-  { label: "10Y G-SEC", value: "7.08%", change: "-0.02", type: "BOND" },
-  { label: "VIX", value: "13.2", change: "-0.4", type: "VOLATILITY" },
-  { label: "INDIA VIX", value: "14.8", change: "+0.6", type: "VOLATILITY" },
-];
-
-const PREDICTED_RANGES = [
-  { symbol: "NIFTY 50", spot: 24520, predLow: 24180, predHigh: 24880, support: [24200, 24350], resistance: [24700, 24900], bias: "BULLISH", confidence: 82 },
-  { symbol: "BANK NIFTY", spot: 52150, predLow: 51600, predHigh: 53100, support: [51800, 52000], resistance: [52800, 53200], bias: "BULLISH", confidence: 75 },
-  { symbol: "FINNIFTY", spot: 23840, predLow: 23600, predHigh: 24100, support: [23650, 23750], resistance: [24000, 24150], bias: "NEUTRAL", confidence: 68 },
+  { label: "USD/INR", value: "83.52", change: "+0.08", type: "FOREX", up: false },
+  { label: "EUR/INR", value: "90.41", change: "+0.18", type: "FOREX", up: true },
+  { label: "10Y G-SEC", value: "7.08%", change: "-0.02", type: "BOND", up: false },
+  { label: "INDIA VIX", value: "14.8", change: "+0.6", type: "VOLATILITY", up: false },
+  { label: "REPO RATE", value: "6.50%", change: "0.00", type: "POLICY", up: true },
+  { label: "CPI YoY", value: "5.4%", change: "-0.1", type: "MACRO", up: true },
 ];
 
 export default function MarketPulse() {
-  const [activeTab, setActiveTab] = useState<"overview"|"sectors"|"fii"|"macro"|"breadth">("overview");
-  const [sectorQuotes, setSectorQuotes] = useState<Record<string, Quote>>({});
-  const [lastUpdated] = useState(new Date());
+  const [tab, setTab] = useState<"overview" | "fii" | "sectors" | "institutional" | "news">("overview");
+  const [sectorData, setSectorData] = useState<Record<string, number>>({});
+  const [fiiDii, setFiiDii] = useState<any[]>([]);
+  const [news, setNews] = useState<any[]>([]);
+  const [movers, setMovers] = useState<{ topGainers: Quote[]; topLosers: Quote[] }>({ topGainers: [], topLosers: [] });
+  const [lastUpdate, setLastUpdate] = useState(new Date());
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const syms = SECTORS.map(s => s.symbol);
-        const res = await fetchQuotes(syms);
-        if (res.success) {
-          const map: Record<string, Quote> = {};
-          res.data.forEach((q: Quote) => { map[q.symbol] = q; });
-          setSectorQuotes(map);
+  const loadData = useCallback(async () => {
+    const allSymbols = SECTORS.flatMap(s => s.symbols);
+    const [qRes, fiiRes, newsRes, mvrRes] = await Promise.allSettled([
+      fetchQuotes(allSymbols),
+      fetchFiiDii(),
+      fetchNews(),
+      fetchMovers(),
+    ]);
+
+    if (qRes.status === "fulfilled" && qRes.value.success) {
+      const quotes: Quote[] = qRes.value.data || [];
+      const sData: Record<string, number> = {};
+      for (const sector of SECTORS) {
+        const sectorQuotes = quotes.filter(q => sector.symbols.includes(q.symbol));
+        if (sectorQuotes.length > 0) {
+          const avg = sectorQuotes.reduce((sum, q) => sum + (q.regularMarketChangePercent ?? 0), 0) / sectorQuotes.length;
+          sData[sector.name] = avg;
         }
-      } catch {}
-    };
-    load();
+      }
+      setSectorData(sData);
+    }
+    if (fiiRes.status === "fulfilled" && fiiRes.value.success) setFiiDii(fiiRes.value.data || []);
+    if (newsRes.status === "fulfilled" && newsRes.value.success) setNews(newsRes.value.data || []);
+    if (mvrRes.status === "fulfilled" && mvrRes.value.success) setMovers({ topGainers: mvrRes.value.topGainers || [], topLosers: mvrRes.value.topLosers || [] });
+    setLastUpdate(new Date());
   }, []);
 
-  const tabs = ["overview", "sectors", "fii", "macro", "breadth"] as const;
+  useEffect(() => {
+    loadData();
+    const t = setInterval(loadData, 20000);
+    return () => clearInterval(t);
+  }, [loadData]);
+
+  const todayFii = fiiDii[0];
+  const totalFiiNet5d = fiiDii.slice(0, 5).reduce((s: number, d: any) => s + (d?.fiiNet ?? 0), 0);
+  const totalDiiNet5d = fiiDii.slice(0, 5).reduce((s: number, d: any) => s + (d?.diiNet ?? 0), 0);
+
+  const INST_ACTIVITY = [
+    { type: "FII", action: "BUY", stock: "HDFC BANK", qty: "12.4L", value: "₹2,340Cr", time: "11:23" },
+    { type: "DII", action: "SELL", stock: "INFOSYS", qty: "8.1L", value: "₹1,320Cr", time: "11:18" },
+    { type: "FII", action: "BUY", stock: "ICICI BANK", qty: "15.2L", value: "₹2,890Cr", time: "10:55" },
+    { type: "MF", action: "BUY", stock: "NIFTY 50 ETF", qty: "—", value: "₹4,200Cr", time: "10:30" },
+    { type: "FII", action: "SELL", stock: "RELIANCE", qty: "5.4L", value: "₹1,590Cr", time: "10:12" },
+    { type: "DII", action: "BUY", stock: "TCS", qty: "3.8L", value: "₹1,580Cr", time: "09:47" },
+    { type: "FPI", action: "BUY", stock: "BANK NIFTY OPTIONS", qty: "—", value: "₹890Cr", time: "09:32" },
+    { type: "MF", action: "BUY", stock: "MIDCAP 150 ETF", qty: "—", value: "₹1,100Cr", time: "09:15" },
+  ];
 
   return (
     <div className="min-h-screen cyber-grid">
-      <div className="max-w-[1800px] mx-auto p-4 space-y-4">
+      <div className="max-w-[1800px] mx-auto p-3 space-y-3">
 
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h1 className="text-lg font-bold gradient-text tracking-wider">MARKET PULSE INSIGHTS</h1>
-            <p className="text-[10px] text-[hsl(220,20%,35%)]">FII/DII Flows • Sector Analysis • Macro Data • AI Predictions</p>
+            <h1 className="text-base font-bold gradient-text tracking-wider">MARKET PULSE INSIGHTS</h1>
+            <p className="text-[9px] text-[hsl(220,20%,35%)]">FII/DII Flow • Institutional Activity • Sector Heatmap • Market Breadth</p>
           </div>
-          <div className="text-[9px] text-[hsl(220,20%,35%)]">UPDATED: <span className="text-[hsl(168,100%,45%)]">{lastUpdated.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" })}</span></div>
+          <div className="flex items-center gap-2 text-[8px]">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full status-live pulse-dot"></div>
+              <span className="neon-green">{lastUpdate.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" })}</span>
+            </div>
+            <button onClick={loadData} className="px-2 py-1 rounded bg-[rgba(0,255,180,0.1)] border border-[rgba(0,255,180,0.2)] neon-green">↺</button>
+          </div>
         </div>
 
-        {/* Tab bar */}
-        <div className="flex gap-0 border-b border-[rgba(0,255,180,0.1)]">
-          {tabs.map(t => (
-            <button key={t} onClick={() => setActiveTab(t)}
-              className={`px-4 py-2.5 text-[9px] font-bold tracking-widest transition-all border-b-2 ${activeTab === t ? "nav-active" : "text-[hsl(220,20%,40%)] border-transparent hover:text-[hsl(180,60%,70%)]"}`}>
+        {/* Summary KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {[
+            { label: "TODAY FII NET", value: todayFii ? `${todayFii.fiiNet >= 0 ? "+" : "-"}₹${Math.abs(todayFii.fiiNet).toLocaleString("en-IN")}Cr` : "—", color: todayFii?.fiiNet >= 0 ? "neon-green" : "neon-red", desc: "Equity segment" },
+            { label: "TODAY DII NET", value: todayFii ? `${todayFii.diiNet >= 0 ? "+" : "-"}₹${Math.abs(todayFii.diiNet).toLocaleString("en-IN")}Cr` : "—", color: todayFii?.diiNet >= 0 ? "neon-green" : "neon-red", desc: "Cash + F&O" },
+            { label: "5D FII NET", value: `${totalFiiNet5d >= 0 ? "+" : "-"}₹${Math.abs(totalFiiNet5d).toLocaleString("en-IN")}Cr`, color: totalFiiNet5d >= 0 ? "neon-green" : "neon-red", desc: "Last 5 sessions" },
+            { label: "5D DII NET", value: `${totalDiiNet5d >= 0 ? "+" : "-"}₹${Math.abs(totalDiiNet5d).toLocaleString("en-IN")}Cr`, color: totalDiiNet5d >= 0 ? "neon-green" : "neon-red", desc: "Last 5 sessions" },
+          ].map(({ label, value, color, desc }) => (
+            <div key={label} className="glass-card rounded-lg p-3">
+              <div className="text-[8px] text-[hsl(220,20%,38%)] mb-1 font-bold tracking-wider">{label}</div>
+              <div className={`text-xl font-bold tabular-nums ${color}`}>{value}</div>
+              <div className="text-[7px] text-[hsl(220,20%,35%)]">{desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Tab nav */}
+        <div className="flex gap-1 flex-wrap">
+          {(["overview","fii","sectors","institutional","news"] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-3 py-1.5 rounded text-[8px] font-bold tracking-wider transition-all ${tab === t ? "bg-[rgba(0,255,180,0.2)] neon-green border border-[rgba(0,255,180,0.4)]" : "glass-card text-[hsl(220,20%,45%)]"}`}>
               {t.toUpperCase()}
             </button>
           ))}
         </div>
 
-        {activeTab === "overview" && (
-          <div className="space-y-4">
-            {/* Predicted ranges */}
-            <div className="glass-card rounded-lg p-4">
-              <div className="text-[10px] font-bold text-[hsl(168,100%,50%)] mb-4 tracking-wider">🤖 AI PREDICTED RANGES — TODAY</div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {PREDICTED_RANGES.map(pr => (
-                  <div key={pr.symbol} className="bg-[rgba(0,0,0,0.3)] rounded-lg p-4 border border-[rgba(0,255,180,0.08)]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[10px] font-bold text-[hsl(180,60%,70%)]">{pr.symbol}</span>
-                      <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${pr.bias === "BULLISH" ? "bg-[rgba(0,255,180,0.15)] neon-green" : pr.bias === "BEARISH" ? "bg-[rgba(255,80,80,0.15)] neon-red" : "bg-[rgba(255,200,0,0.1)] neon-yellow"}`}>{pr.bias}</span>
+        {tab === "overview" && (
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 lg:col-span-8 glass-card rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)] text-[9px] font-bold text-[hsl(168,100%,50%)]">NIFTY 50 — TECHNICAL OVERVIEW</div>
+              <TradingViewWidget symbol="NSE:NIFTY50" height={400} />
+            </div>
+            <div className="col-span-12 lg:col-span-4 space-y-3">
+              <div className="glass-card rounded-lg p-3">
+                <div className="text-[9px] font-bold text-[hsl(168,100%,50%)] mb-2 tracking-wider">MACRO SNAPSHOT</div>
+                {MACRO_DATA.map(m => (
+                  <div key={m.label} className="flex justify-between items-center py-1 border-b border-[rgba(255,255,255,0.04)]">
+                    <div>
+                      <div className="text-[8px] font-bold text-[hsl(180,50%,70%)]">{m.label}</div>
+                      <div className="text-[7px] text-[hsl(220,20%,35%)]">{m.type}</div>
                     </div>
-                    <div className="text-2xl font-bold neon-green tabular-nums mb-3">{pr.spot.toLocaleString("en-IN")}</div>
-
-                    {/* Range bar */}
-                    <div className="mb-3">
-                      <div className="flex justify-between text-[8px] text-[hsl(220,20%,40%)] mb-1">
-                        <span>PRED LOW: <span className="neon-red">{pr.predLow.toLocaleString("en-IN")}</span></span>
-                        <span>PRED HIGH: <span className="neon-green">{pr.predHigh.toLocaleString("en-IN")}</span></span>
-                      </div>
-                      <div className="h-2 bg-[rgba(255,255,255,0.05)] rounded-full relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-[rgba(255,80,80,0.3)] via-[rgba(0,255,180,0.4)] to-[rgba(0,255,180,0.3)] rounded-full"></div>
-                        {/* Spot indicator */}
-                        <div className="absolute top-0 bottom-0 w-0.5 bg-white rounded-full shadow-[0_0_4px_white]"
-                          style={{ left: `${((pr.spot - pr.predLow) / (pr.predHigh - pr.predLow) * 100)}%` }} />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 text-[8px]">
-                      <div>
-                        <div className="text-[hsl(220,20%,40%)] mb-0.5">SUPPORT</div>
-                        {pr.support.map(s => <div key={s} className="neon-green tabular-nums">{s.toLocaleString("en-IN")}</div>)}
-                      </div>
-                      <div>
-                        <div className="text-[hsl(220,20%,40%)] mb-0.5">RESISTANCE</div>
-                        {pr.resistance.map(r => <div key={r} className="neon-red tabular-nums">{r.toLocaleString("en-IN")}</div>)}
-                      </div>
-                    </div>
-
-                    <div className="mt-2 flex items-center gap-1">
-                      <div className="flex-1 h-1 bg-[rgba(255,255,255,0.05)] rounded-full">
-                        <div className="h-full rounded-full bg-[hsl(168,100%,50%)]" style={{ width: `${pr.confidence}%` }} />
-                      </div>
-                      <span className="text-[8px] text-[hsl(220,20%,40%)]">{pr.confidence}% CONF</span>
+                    <div className="text-right">
+                      <div className="text-[9px] font-bold text-[hsl(220,20%,60%)] tabular-nums">{m.value}</div>
+                      <div className={`text-[7px] tabular-nums ${m.up ? "neon-green" : "neon-red"}`}>{m.change}</div>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* TradingView global markets */}
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-12 lg:col-span-8 glass-card rounded-lg overflow-hidden">
-                <div className="px-4 py-2 border-b border-[rgba(0,255,180,0.1)] text-[10px] font-bold text-[hsl(168,100%,50%)]">NIFTY 50 — TECHNICAL OVERVIEW</div>
-                <TradingViewWidget symbol="CAPITALCOM:NIFTY50" height={400} />
-              </div>
-              <div className="col-span-12 lg:col-span-4 space-y-4">
-                <div className="glass-card rounded-lg p-4">
-                  <div className="text-[10px] font-bold text-[hsl(168,100%,50%)] mb-3 tracking-wider">MACRO SNAPSHOT</div>
-                  <div className="space-y-2">
-                    {MACRO_DATA.slice(0, 6).map(m => {
-                      const up = !m.change.startsWith("-");
-                      return (
-                        <div key={m.label} className="flex justify-between items-center py-1 border-b border-[rgba(255,255,255,0.04)]">
-                          <span className="text-[9px] text-[hsl(220,20%,45%)]">{m.label}</span>
-                          <div className="text-right">
-                            <div className="text-[9px] font-bold text-[hsl(180,50%,70%)] tabular-nums">{m.value}</div>
-                            <div className={`text-[8px] tabular-nums ${up ? "text-[hsl(168,80%,45%)]" : "text-[hsl(0,80%,55%)]"}`}>{m.change}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+              <div className="glass-card rounded-lg p-3">
+                <div className="text-[9px] font-bold text-[hsl(168,100%,50%)] mb-2">TOP MOVERS TODAY</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-[7px] neon-green mb-1">▲ GAINERS</div>
+                    {movers.topGainers.slice(0, 5).map((q: any, i) => (
+                      <div key={i} className="flex justify-between text-[7px] py-0.5">
+                        <span className="text-[hsl(180,40%,60%)]">{q.shortName || q.symbol.replace(".NS","")}</span>
+                        <span className="neon-green">+{q.regularMarketChangePercent?.toFixed(2)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="text-[7px] neon-red mb-1">▼ LOSERS</div>
+                    {movers.topLosers.slice(0, 5).map((q: any, i) => (
+                      <div key={i} className="flex justify-between text-[7px] py-0.5">
+                        <span className="text-[hsl(180,40%,60%)]">{q.shortName || q.symbol.replace(".NS","")}</span>
+                        <span className="neon-red">{q.regularMarketChangePercent?.toFixed(2)}%</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -174,177 +181,203 @@ export default function MarketPulse() {
           </div>
         )}
 
-        {activeTab === "sectors" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {SECTORS.map(s => {
-                const q = sectorQuotes[s.symbol];
-                const chg = q?.regularMarketChangePercent ?? s.change;
-                const up = chg >= 0;
-                return (
-                  <div key={s.name} className="glass-card glass-card-hover rounded-lg p-4 transition-all">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-[9px] font-bold text-[hsl(180,50%,70%)] tracking-wider">{s.name}</span>
-                      <span className={`text-[9px] font-bold ${up ? "neon-green" : "neon-red"}`}>{up ? "+" : ""}{chg.toFixed(2)}%</span>
-                    </div>
-                    {/* Heatmap bar */}
-                    <div className="h-2 rounded-full overflow-hidden mb-2" style={{ background: `rgba(${up ? "0,255,180" : "255,80,80"},0.2)` }}>
-                      <div className={`h-full rounded-full ${up ? "bg-[hsl(168,100%,50%)]" : "bg-[hsl(0,90%,55%)]"}`} style={{ width: `${Math.min(100, Math.abs(chg) * 20)}%` }} />
-                    </div>
-                    <div className="flex flex-wrap gap-0.5">
-                      {s.stocks.slice(0, 3).map(sym => (
-                        <span key={sym} className="text-[7px] px-1 py-0.5 rounded bg-[rgba(255,255,255,0.04)] text-[hsl(220,20%,45%)]">{sym.replace(".NS", "")}</span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Sector heatmap visual */}
-            <div className="glass-card rounded-lg p-4">
-              <div className="text-[10px] font-bold text-[hsl(168,100%,50%)] mb-4 tracking-wider">SECTOR ROTATION HEATMAP</div>
-              <div className="grid grid-cols-4 gap-2">
-                {SECTORS.map(s => {
-                  const q = sectorQuotes[s.symbol];
-                  const chg = q?.regularMarketChangePercent ?? s.change;
-                  const intensity = Math.min(1, Math.abs(chg) / 4);
-                  const up = chg >= 0;
-                  return (
-                    <div key={s.name} className="rounded-lg p-4 text-center transition-all cursor-pointer"
-                      style={{ background: up ? `rgba(0,255,180,${0.08 + intensity * 0.3})` : `rgba(255,80,80,${0.08 + intensity * 0.3})`, border: `1px solid rgba(${up ? "0,255,180" : "255,80,80"},${0.15 + intensity * 0.2})` }}>
-                      <div className="text-[9px] font-bold text-[hsl(180,50%,80%)] mb-1">{s.name}</div>
-                      <div className={`text-lg font-bold tabular-nums ${up ? "neon-green" : "neon-red"}`}>{up ? "+" : ""}{chg.toFixed(2)}%</div>
-                    </div>
-                  );
-                })}
+        {tab === "fii" && (
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 glass-card rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)] text-[9px] font-bold text-[hsl(168,100%,50%)]">FII / DII DAILY FLOW — LAST 10 SESSIONS</div>
+              <div className="p-3">
+                <div className="overflow-auto">
+                  <table className="w-full text-[8.5px]">
+                    <thead>
+                      <tr className="text-[hsl(220,20%,35%)]">
+                        {["DATE","FII BUY (Cr)","FII SELL (Cr)","FII NET (Cr)","DII BUY (Cr)","DII SELL (Cr)","DII NET (Cr)","NIFTY CHNG","SENTIMENT"].map(h => (
+                          <th key={h} className="px-3 py-2 text-right first:text-left font-bold tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fiiDii.map((row: any, i) => {
+                        const sentiment = row.fiiNet > 0 && row.diiNet > 0 ? "BULLISH" :
+                          row.fiiNet < 0 && row.diiNet < 0 ? "BEARISH" :
+                            row.fiiNet > 0 ? "FII DRIVEN" : "DII DRIVEN";
+                        return (
+                          <tr key={i} className="border-t border-[rgba(255,255,255,0.03)] table-row-hover">
+                            <td className="px-3 py-2 text-[hsl(180,40%,60%)]">{row.date}</td>
+                            <td className="px-3 py-2 text-right neon-green tabular-nums">{(row.fiiBuy / 100).toFixed(0)}</td>
+                            <td className="px-3 py-2 text-right neon-red tabular-nums">{(row.fiiSell / 100).toFixed(0)}</td>
+                            <td className={`px-3 py-2 text-right font-bold tabular-nums ${row.fiiNet >= 0 ? "neon-green" : "neon-red"}`}>{row.fiiNet >= 0 ? "+" : ""}{(row.fiiNet / 100).toFixed(0)}</td>
+                            <td className="px-3 py-2 text-right neon-green tabular-nums">{(row.diiBuy / 100).toFixed(0)}</td>
+                            <td className="px-3 py-2 text-right neon-red tabular-nums">{(row.diiSell / 100).toFixed(0)}</td>
+                            <td className={`px-3 py-2 text-right font-bold tabular-nums ${row.diiNet >= 0 ? "neon-green" : "neon-red"}`}>{row.diiNet >= 0 ? "+" : ""}{(row.diiNet / 100).toFixed(0)}</td>
+                            <td className={`px-3 py-2 text-right tabular-nums ${row.niftyChg >= 0 ? "neon-green" : "neon-red"}`}>{row.niftyChg >= 0 ? "+" : ""}{row.niftyChg?.toFixed(2)}%</td>
+                            <td className={`px-3 py-2 text-right text-[7px] font-bold ${sentiment === "BULLISH" ? "neon-green" : sentiment === "BEARISH" ? "neon-red" : "neon-yellow"}`}>{sentiment}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {activeTab === "fii" && (
-          <div className="space-y-4">
-            <div className="glass-card rounded-lg p-4">
-              <div className="text-[10px] font-bold text-[hsl(168,100%,50%)] mb-4 tracking-wider">FII / DII ACTIVITY — CASH MARKET (₹ Cr)</div>
-              <div className="overflow-auto">
-                <table className="w-full text-[9px]">
+        {tab === "sectors" && (
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 lg:col-span-8">
+              <div className="glass-card rounded-lg p-3">
+                <div className="text-[9px] font-bold text-[hsl(168,100%,50%)] mb-3 tracking-wider">SECTOR HEATMAP — TODAY'S PERFORMANCE</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {SECTORS.map(sector => {
+                    const chg = sectorData[sector.name] ?? 0;
+                    const intensity = Math.min(1, Math.abs(chg) / 3);
+                    return (
+                      <div key={sector.name} className="rounded-lg p-3 text-center cursor-pointer"
+                        style={{
+                          background: chg >= 0
+                            ? `rgba(0,255,180,${0.03 + intensity * 0.15})`
+                            : `rgba(255,80,80,${0.03 + intensity * 0.15})`,
+                          border: `1px solid ${chg >= 0 ? `rgba(0,255,180,${0.1 + intensity * 0.3})` : `rgba(255,80,80,${0.1 + intensity * 0.3})`}`,
+                        }}>
+                        <div className="text-[9px] font-bold text-[hsl(180,40%,70%)] mb-1">{sector.name}</div>
+                        <div className={`text-xl font-bold tabular-nums ${chg >= 0 ? "neon-green" : "neon-red"}`}>
+                          {chg >= 0 ? "+" : ""}{chg.toFixed(2)}%
+                        </div>
+                        <div className="text-[7px] text-[hsl(220,20%,35%)] mt-1">{sector.symbols.length} stocks</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="col-span-12 lg:col-span-4 glass-card rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)] text-[9px] font-bold text-[hsl(168,100%,50%)]">BANK NIFTY CHART</div>
+              <TradingViewWidget symbol="NSE:BANKNIFTY" height={300} />
+            </div>
+          </div>
+        )}
+
+        {tab === "institutional" && (
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 lg:col-span-8 glass-card rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
+                <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">INSTITUTIONAL ACTIVITY — BLOCK DEALS & BULK TRADES</span>
+              </div>
+              <div className="overflow-auto p-2">
+                <table className="w-full text-[8.5px]">
                   <thead>
-                    <tr className="bg-[rgba(0,0,0,0.5)]">
-                      {["DATE","FII NET (₹Cr)","DII NET (₹Cr)","NIFTY CHNG%","MARKET IMPACT"].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-[hsl(220,20%,40%)] font-bold tracking-wider">{h}</th>
+                    <tr className="text-[hsl(220,20%,35%)] bg-[rgba(0,0,0,0.4)]">
+                      {["TIME","INSTITUTION","ACTION","STOCK","QUANTITY","VALUE","STATUS"].map(h => (
+                        <th key={h} className="px-3 py-2 text-left font-bold tracking-wider">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {FII_DII_DATA.map((row, i) => {
-                      const fiiUp = row.fii >= 0;
-                      const niftyUp = row.niftyChg >= 0;
-                      return (
-                        <tr key={i} className="border-t border-[rgba(255,255,255,0.04)] table-row-hover">
-                          <td className="px-4 py-3 text-[hsl(180,40%,65%)] font-bold">{row.date}</td>
-                          <td className={`px-4 py-3 font-bold tabular-nums ${fiiUp ? "neon-green" : "neon-red"}`}>
-                            {fiiUp ? "+" : ""}{row.fii.toLocaleString("en-IN")}
-                          </td>
-                          <td className={`px-4 py-3 font-bold tabular-nums ${row.dii >= 0 ? "neon-green" : "neon-red"}`}>
-                            {row.dii >= 0 ? "+" : ""}{row.dii.toLocaleString("en-IN")}
-                          </td>
-                          <td className={`px-4 py-3 font-bold tabular-nums ${niftyUp ? "neon-green" : "neon-red"}`}>
-                            {niftyUp ? "+" : ""}{row.niftyChg}%
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${fiiUp ? "bg-[rgba(0,255,180,0.1)] text-[hsl(168,100%,50%)]" : "bg-[rgba(255,80,80,0.1)] text-[hsl(0,80%,60%)]"}`}>
-                              {fiiUp ? "RISK-ON" : "RISK-OFF"}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                    {INST_ACTIVITY.map((act, i) => (
+                      <tr key={i} className="border-t border-[rgba(255,255,255,0.04)] table-row-hover">
+                        <td className="px-3 py-2 tabular-nums text-[hsl(220,20%,40%)]">{act.time}</td>
+                        <td className="px-3 py-2 font-bold">
+                          <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${act.type === "FII" || act.type === "FPI" ? "bg-[rgba(0,150,255,0.15)] text-[hsl(200,100%,60%)]" : act.type === "DII" ? "bg-[rgba(0,255,180,0.15)] neon-green" : "bg-[rgba(255,200,0,0.15)] neon-yellow"}`}>
+                            {act.type}
+                          </span>
+                        </td>
+                        <td className={`px-3 py-2 font-bold ${act.action === "BUY" ? "neon-green" : "neon-red"}`}>{act.action === "BUY" ? "▲ BUY" : "▼ SELL"}</td>
+                        <td className="px-3 py-2 text-[hsl(180,50%,70%)] font-bold">{act.stock}</td>
+                        <td className="px-3 py-2 tabular-nums text-[hsl(220,20%,50%)]">{act.qty}</td>
+                        <td className="px-3 py-2 tabular-nums font-bold text-[hsl(168,80%,45%)]">{act.value}</td>
+                        <td className="px-3 py-2">
+                          <span className="text-[7px] px-1.5 py-0.5 rounded neon-green bg-[rgba(0,255,180,0.1)]">EXECUTED</span>
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             </div>
-
-            {/* FII bar chart */}
-            <div className="glass-card rounded-lg p-4">
-              <div className="text-[10px] font-bold text-[hsl(168,100%,50%)] mb-4 tracking-wider">7-DAY FII vs DII FLOW CHART</div>
-              <div className="flex items-end gap-3 h-32">
-                {FII_DII_DATA.map((row, i) => {
-                  const maxVal = 6000;
-                  const fiiH = (Math.abs(row.fii) / maxVal) * 100;
-                  const diiH = (Math.abs(row.dii) / maxVal) * 100;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full flex gap-0.5 items-end" style={{ height: 100 }}>
-                        <div className="flex-1 rounded-t transition-all"
-                          style={{ height: `${fiiH}%`, background: row.fii >= 0 ? "hsl(168,100%,40%)" : "hsl(0,90%,50%)", opacity: 0.8 }} />
-                        <div className="flex-1 rounded-t transition-all"
-                          style={{ height: `${diiH}%`, background: row.dii >= 0 ? "hsl(200,100%,50%)" : "hsl(30,100%,55%)", opacity: 0.8 }} />
-                      </div>
-                      <div className="text-[7px] text-[hsl(220,20%,35%)]">{row.date.split(" ")[0]}</div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex gap-4 text-[8px] mt-2">
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-[hsl(168,100%,40%)]"></div>FII</div>
-                <div className="flex items-center gap-1"><div className="w-2 h-2 rounded bg-[hsl(200,100%,50%)]"></div>DII</div>
+            <div className="col-span-12 lg:col-span-4 space-y-3">
+              <div className="glass-card rounded-lg p-3">
+                <div className="text-[9px] font-bold text-[hsl(168,100%,50%)] mb-2">NET INSTITUTIONAL FLOW</div>
+                {[
+                  { label: "FII/FPI BUY", value: "₹18,240Cr", color: "neon-green" },
+                  { label: "FII/FPI SELL", value: "₹15,890Cr", color: "neon-red" },
+                  { label: "FII NET", value: "+₹2,350Cr", color: "neon-green" },
+                  { label: "DII BUY", value: "₹12,100Cr", color: "neon-green" },
+                  { label: "DII SELL", value: "₹9,800Cr", color: "neon-red" },
+                  { label: "DII NET", value: "+₹2,300Cr", color: "neon-green" },
+                  { label: "MF NET", value: "+₹5,300Cr", color: "neon-green" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="flex justify-between text-[8px] py-1 border-b border-[rgba(255,255,255,0.04)]">
+                    <span className="text-[hsl(220,20%,45%)]">{label}</span>
+                    <span className={`font-bold tabular-nums ${color}`}>{value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         )}
 
-        {activeTab === "macro" && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {MACRO_DATA.map(m => {
-              const up = !m.change.startsWith("-");
-              return (
-                <div key={m.label} className="glass-card glass-card-hover rounded-lg p-5 transition-all">
-                  <div className="text-[8px] text-[hsl(220,20%,40%)] font-bold tracking-wider mb-1">{m.type}</div>
-                  <div className="text-[10px] text-[hsl(180,50%,70%)] mb-2">{m.label}</div>
-                  <div className="text-2xl font-bold text-white tabular-nums mb-1">{m.value}</div>
-                  <div className={`text-xs font-bold ${up ? "neon-green" : "neon-red"}`}>{m.change}</div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {activeTab === "breadth" && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { label: "ADVANCING", value: "1,248", total: "1,745", color: "neon-green", bg: "rgba(0,255,180,0.1)" },
-                { label: "DECLINING", value: "456", total: "1,745", color: "neon-red", bg: "rgba(255,80,80,0.1)" },
-                { label: "UNCHANGED", value: "41", total: "1,745", color: "neon-yellow", bg: "rgba(255,200,0,0.1)" },
-                { label: "NEW 52W HIGH", value: "84", total: "—", color: "neon-green", bg: "rgba(0,255,180,0.05)" },
-              ].map(b => (
-                <div key={b.label} className="glass-card rounded-lg p-4" style={{ background: b.bg }}>
-                  <div className="text-[9px] text-[hsl(220,20%,40%)] font-bold tracking-wider mb-2">{b.label}</div>
-                  <div className={`text-3xl font-bold tabular-nums ${b.color}`}>{b.value}</div>
-                  {b.total !== "—" && <div className="text-[8px] text-[hsl(220,20%,35%)] mt-1">of {b.total} stocks</div>}
-                </div>
-              ))}
+        {tab === "news" && (
+          <div className="grid grid-cols-12 gap-3">
+            <div className="col-span-12 lg:col-span-8 glass-card rounded-lg overflow-hidden">
+              <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
+                <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">LIVE MARKET NEWS — Moneycontrol • ET • LiveMint • Business Standard</span>
+              </div>
+              <div className="p-2 space-y-2 overflow-auto" style={{ maxHeight: 600 }}>
+                {(news.length ? news : Array(12).fill(null)).map((n: any, i) => (
+                  <div key={i} className="flex gap-3 p-2.5 rounded border border-[rgba(255,255,255,0.04)] bg-[rgba(255,255,255,0.02)] hover:bg-[rgba(0,255,180,0.03)] transition-all">
+                    {n ? (
+                      <>
+                        <div className="flex-1">
+                          <a href={n.link} target="_blank" rel="noreferrer"
+                            className="text-[9px] text-[hsl(180,50%,75%)] hover:neon-green leading-tight block mb-1">
+                            {n.title}
+                          </a>
+                          {n.snippet && <div className="text-[7px] text-[hsl(220,20%,38%)] mb-1 line-clamp-2">{n.snippet}</div>}
+                          <div className="flex gap-1.5 items-center">
+                            <span className="text-[6px] px-1.5 py-0.5 rounded bg-[rgba(0,255,180,0.1)] text-[hsl(168,80%,50%)]">{n.source}</span>
+                            <span className={`text-[6px] px-1.5 py-0.5 rounded font-bold ${n.sentiment === "BULLISH" ? "bg-[rgba(0,255,180,0.1)] neon-green" : n.sentiment === "BEARISH" ? "bg-[rgba(255,80,80,0.1)] neon-red" : "bg-[rgba(255,200,0,0.08)] neon-yellow"}`}>
+                              {n.sentiment}
+                            </span>
+                            <span className="text-[6px] text-[hsl(220,20%,30%)]">{new Date(n.pubDate).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" })}</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="h-10 flex-1 animate-pulse bg-[rgba(0,255,180,0.03)] rounded" />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-
-            {/* Advance/Decline ratio visual */}
-            <div className="glass-card rounded-lg p-4">
-              <div className="text-[10px] font-bold text-[hsl(168,100%,50%)] mb-4 tracking-wider">MARKET BREADTH — ADVANCE/DECLINE RATIO</div>
-              <div className="space-y-3">
-                {["NSE","BSE","NIFTY 200","NIFTY 500"].map((mkt, i) => {
-                  const adv = [71.5, 67.3, 74.2, 69.8][i];
+            <div className="col-span-12 lg:col-span-4 space-y-3">
+              <div className="glass-card rounded-lg p-3">
+                <div className="text-[9px] font-bold text-[hsl(168,100%,50%)] mb-2">NEWS SENTIMENT BREAKDOWN</div>
+                {(() => {
+                  const bull = news.filter(n => n.sentiment === "BULLISH").length;
+                  const bear = news.filter(n => n.sentiment === "BEARISH").length;
+                  const neut = news.length - bull - bear;
+                  const total = Math.max(1, news.length);
                   return (
-                    <div key={mkt}>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-[hsl(220,20%,45%)]">{mkt}</span>
-                        <span className="text-[hsl(180,50%,70%)]">{adv}% advancing</span>
-                      </div>
-                      <div className="h-2.5 bg-[rgba(255,80,80,0.3)] rounded-full overflow-hidden">
-                        <div className="h-full bg-[hsl(168,100%,45%)] rounded-full transition-all" style={{ width: `${adv}%` }} />
-                      </div>
+                    <div className="space-y-2">
+                      {[
+                        { label: "BULLISH", count: bull, pct: (bull/total*100), color: "hsl(168,100%,50%)" },
+                        { label: "BEARISH", count: bear, pct: (bear/total*100), color: "hsl(0,80%,55%)" },
+                        { label: "NEUTRAL", count: neut, pct: (neut/total*100), color: "hsl(45,100%,55%)" },
+                      ].map(({ label, count, pct, color }) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-[8px] mb-0.5">
+                            <span style={{ color }}>{label}</span>
+                            <span className="text-[hsl(220,20%,45%)]">{count} ({pct.toFixed(0)}%)</span>
+                          </div>
+                          <div className="h-1.5 bg-[rgba(255,255,255,0.05)] rounded-full overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="text-[7px] text-[hsl(220,20%,35%)] mt-1">Based on {total} Indian market news items</div>
                     </div>
                   );
-                })}
+                })()}
               </div>
             </div>
           </div>

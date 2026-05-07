@@ -1,41 +1,47 @@
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-const API = `${BASE}/api/market`;
+const API = `${BASE}/api`;
 
-export async function fetchQuotes(symbols?: string[]) {
-  const url = symbols ? `${API}/quotes?symbols=${symbols.join(",")}` : `${API}/quotes`;
+async function apiFetch(url: string) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error("Failed to fetch quotes");
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
 export async function fetchIndices() {
-  const res = await fetch(`${API}/indices`);
-  if (!res.ok) throw new Error("Failed to fetch indices");
-  return res.json();
+  return apiFetch(`${API}/market/indices`);
+}
+
+export async function fetchQuotes(symbols?: string[]) {
+  const url = symbols ? `${API}/market/quotes?symbols=${symbols.join(",")}` : `${API}/market/quotes`;
+  return apiFetch(url);
 }
 
 export async function fetchTicker() {
-  const res = await fetch(`${API}/ticker`);
-  if (!res.ok) throw new Error("Failed to fetch ticker");
-  return res.json();
-}
-
-export async function fetchChart(symbol: string, interval = "5m", range = "1d") {
-  const res = await fetch(`${API}/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`);
-  if (!res.ok) throw new Error("Failed to fetch chart");
-  return res.json();
-}
-
-export async function fetchOptions(symbol: string) {
-  const res = await fetch(`${API}/options/${encodeURIComponent(symbol)}`);
-  if (!res.ok) throw new Error("Failed to fetch options");
-  return res.json();
+  return apiFetch(`${API}/market/ticker`);
 }
 
 export async function fetchMovers() {
-  const res = await fetch(`${API}/movers`);
-  if (!res.ok) throw new Error("Failed to fetch movers");
-  return res.json();
+  return apiFetch(`${API}/market/movers`);
+}
+
+export async function fetchFiiDii() {
+  return apiFetch(`${API}/market/fii-dii`);
+}
+
+export async function fetchNseOptionChain(symbol: string) {
+  return apiFetch(`${API}/market/nse-option-chain?symbol=${encodeURIComponent(symbol)}`);
+}
+
+export async function fetchNseAllIndices() {
+  return apiFetch(`${API}/market/nse-all-indices`);
+}
+
+export async function fetchChart(symbol: string, interval = "5m", range = "1d") {
+  return apiFetch(`${API}/market/chart/${encodeURIComponent(symbol)}?interval=${interval}&range=${range}`);
+}
+
+export async function fetchNews() {
+  return apiFetch(`${API}/news/feed`);
 }
 
 export function formatPrice(price: number, currency = "₹") {
@@ -62,4 +68,14 @@ export function formatMarketCap(cap: number) {
   if (cap >= 1e12) return `₹${(cap / 1e12).toFixed(2)}T`;
   if (cap >= 1e9) return `₹${(cap / 1e9).toFixed(2)}B`;
   return `₹${(cap / 1e6).toFixed(2)}M`;
+}
+
+export function timeAgo(dateStr: string) {
+  const ms = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
