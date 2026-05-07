@@ -1,0 +1,65 @@
+## Eltons Trades: Aladdin AI Trading Terminal (F&O v3)
+### Comprehensive Project Master Specification
+This document merges and codifies all requirements for **Eltons Trades**, an institutional-grade, Bloomberg-style automated trading terminal. Engineered for the Indian Equities and Derivatives (F&O) markets, this system utilizes a multi-agent AI architecture to synthesize live market telemetry, news, and risk management into high-probability trade execution.
+## 1. System Architecture & Real-Time Data Pipeline
+To eliminate latency, the terminal bypasses standard HTTP polling in favor of an event-driven, "Tick-to-Trade" architecture.
+ * **The Source (NSE/BSE):** Direct data ingestion from the National Stock Exchange and Bombay Stock Exchange.
+ * **Infrastructure (Leased Lines & DMA):** Uses Direct Market Access (DMA) logic. In a production environment, this mimics the high-speed fiber-optic leased lines used by brokers to connect to Mumbai data centers.
+ * **Technical Delivery (WebSockets):** A permanent, bidirectional "pipe" (TCP connection) that pushes every price tick to the UI the millisecond it arrives.
+ * **Data Levels:**
+   * **Level 1 (L1):** Best Bid/Ask and Last Traded Price (LTP).
+   * **Level 2 (L2):** Market Depth (Top 20 buy/sell orders) for liquidity analysis.
+   * **Level 3 (Tick-by-Tick):** Full order flow integration for HFT-style analysis.
+ * **Data Sources:** Integrates live RSS feeds and APIs from **Moneycontrol, Economic Times (ET), Livemint, Business Standard (BS), BSE India, and World Monitor**.
+## 2. The "Aladdin" Multi-Agent AI Core
+The terminal operates as a virtual trading desk where specialized agents collaborate to validate trades.
+
+| Agent | Responsibility | Logic / Parameters |
+| :--- | :--- | :--- |
+| **Analyst Agent** | Quantitative Engine | Scans OHLCV every 5–18s for 15+ patterns (e.g., Morning Star, Hammer). Calculates RSI, MACD, VWAP, and SuperTrend. |
+| **Researcher Agent** | Fundamental (RAG) | Pulls news context from World Monitor and BSE India. Prevents trading against macro sentiment or negative earnings. |
+| **Risk Agent** | Systemic Guardrail | Enforces EMA-50 trend filters. Rejects trades if price < EMA-50. Caps position size at **1.5% - 2%** of capital. |
+| **Supervisor Agent** | Executive Decision | Orchestrates data into **Claude 3.5 Sonnet / Gemini 1.5 Pro**. Outputs JSON with Entry, SL, Target, and Reasoning. |
+
+## 3. Core Features & User Interface
+The UI uses a **"Hacker-Trader" aesthetic**: dark-mode glassmorphism with neon-glow indicators and a cyber-grid background.
+### **Interactive Dashboards**
+ * **Live Market News Feed:** Updated every second; filtered exclusively for Indian stock market and option data.
+ * **Advanced Charting:** Embedded **TradingView** widget with RSI, MACD, and Bollinger Bands. Integrated with GoCharting (order flow) and Nifty Trader.
+ * **Option Chain Explorer:** Real-time matrix of LTP, Open Interest (OI) bars, and Greeks (Delta, Gamma, Theta, Vega).
+   * *Black-Scholes Fallback:* If APIs lag, the terminal calculates Greeks locally on the client side.
+ * **Market Overview & Institutional Flow:** Real-time FII/DII data and intraday ranges (VWAP, 52-week High/Low).
+ * **Predicted Range:** AI-driven prediction of daily High/Low for all indices with detailed "Why" analysis.
+### **Trading Controls**
+ * **Ticker Strip:** Real-time prices for major global and domestic symbols (Nifty, Sensex, AAPL, TSLA, etc.).
+ * **Trade Signals:** 3 Categories (All, F&O, Stocks) with dropdown filters (Buy only, Sell only, All).
+ * **Automation:** **AUTO ON/OFF** toggle for paper trading.
+ * **The Kill Switch:** An immutable safety mechanism that halts all trading if daily drawdown hits **5%**.
+## 4. Institutional Risk Management
+The terminal follows a "Risk-First" protocol, removing emotional bias.
+ 1. **Dynamic Stop-Loss:** Calculated via **Average True Range (ATR)** to ensure a minimum **1:2 Risk-to-Reward ratio**.
+ 2. **Position Sizing Formula:**
+   
+ 3. **Garbage Data Lock:** If WebSocket latency exceeds 5 seconds, the system freezes all order generation to prevent trading on stale data.
+ 4. **F&O Localization:** Hardcoded 2026 lot sizes (e.g., Nifty: 75, Bank Nifty: 15) for precise INR (₹) calculations.
+## 5. Implementation Strategy (Technical Stack)
+```javascript
+// Conceptual Architecture - Aladdin V3
+const AladdinTerminal = {
+  frontend: "React.js (Vite) + Tailwind CSS",
+  stateManagement: "Zustand (for sub-second UI updates)",
+  dataStream: "WebSockets (WSS) via Broker API / TrueData",
+  aiModel: "Claude 3.5 Sonnet (Primary) / Gemini 1.5 Flash (Fallback)",
+  riskEngine: "Lean Six Sigma Variance Control Logic",
+  deployment: "Vercel / AWS with Node.js Proxy for API Security"
+};
+```
+### **Updated Logic for 2026**
+ * **Real-time sync:** All components (Option Chain, Charts, Signals) are synchronized to the same millisecond timestamp.
+ * **AI Brain:** The AI is upgraded to handle image uploads, allowing users to attach chart screenshots for instant AI technical analysis.
+ * **Execution:** Native integration with Zerodha Kite, Upstox Pro, or manual override buttons for every signal.
+**Next Steps:**
+ 1. Initialize the **React/Vite** environment.
+ 2. Establish the **WebSocket** handshake with your chosen data vendor.
+ 3. Configure the **RAG (Retrieval-Augmented Generation)** pipeline for the Market News feed.
+ 4. Deploy the **Risk Agent** daemon as a high-priority background process.

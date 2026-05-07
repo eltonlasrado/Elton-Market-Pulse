@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Elton's Aladin - Trading Terminal"
+version = "1.0.0"
+id = "artifacts/eltons-aladin"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 20226
+
+[services.development]
+run = "pnpm --filter @workspace/eltons-aladin run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/eltons-aladin", "run", "build" ]
+publicDir = "artifacts/eltons-aladin/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "20226"
+BASE_PATH = "/"
