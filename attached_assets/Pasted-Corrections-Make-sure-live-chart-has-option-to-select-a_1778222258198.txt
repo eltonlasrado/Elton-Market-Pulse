@@ -1,0 +1,22 @@
+Corrections : 
+
+Make sure live chart :has option to select any stock or index and get its live chart option and having a option dropdown for timeframe starting from 15mins and includes all indices stocks and commodities. Also make sure the live chart has option of pine indicators and analysis attached is the all in one indicator chart info. 
+
+also include a box below live chart have the analysis of chart from pine indicator with analysis of the selected chart with elaboration and details including buy sell or hold
+
+ALADDIN AI SIGNALS : has incorrect stock data of all stocks (not options i mean only stock data is incorrect) . Make sure the data is real time data and matched with live market data with accurate information and analysis with reason and elaboration. Make sure all signals are correct accurate and analysied with real time data 
+
+Option Chain explorer : Make sure it includes all option chain indices and real time data matching to live market. The data is not accurate. Its same data shown for all indices . Make sure data is matched to live market data and realtime data sync it actively every second 
+
+and update all the below in real time actively PUT/CALL RATIO , MAX PAIN , ATM CALL IV , ATM PUT IV , TOTAL CALL OI , TOTAL PUT OI , ATM GAMMA, ATM VEGA
+
+Trade signals : are not updated with correct stock price and analysis make sure it is updated and accurate with real time data 
+
+All the below data is also incorrect make sure it is updated in real time and has live data , accurate : FII Cash Market* , DII Cash Market* , FII Index Futures, FII Index Options , FII Stock Futures , FII Stock Options
+
+MARKET ANALYSIS : Make sure it has a dropdown to select any and all options and stocks required with all the info updated with live market and realtime. 
+Make sure OVERVIEW , RANGE , VWAP, MOMENTUM all tab work with its required information accurate and realtime. 
+
+Also make sure ai brain answers all the questions asked and detailed 
+
+And make sure site has 3 view mode stylish background with stock market style css and design 3d module and everything and second simple white and simple black so that its easier for people to view as required style and a option to switch instantly on top right 
