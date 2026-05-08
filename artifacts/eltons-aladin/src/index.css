@@ -55,7 +55,10 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root {
+/* ============================================================
+   CYBER THEME (Default)
+   ============================================================ */
+:root, [data-theme="cyber"] {
   --button-outline: rgba(0,0,0,.10);
   --badge-outline: rgba(0,0,0,.05);
   --opaque-button-border-intensity: -8;
@@ -95,9 +98,9 @@
   --chart-3: 45 100% 55%;
   --chart-4: 270 80% 65%;
   --chart-5: 0 90% 55%;
-  --app-font-sans: 'Inter', 'JetBrains Mono', monospace;
+  --app-font-sans: 'Share Tech Mono', 'JetBrains Mono', monospace;
   --app-font-serif: Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --app-font-mono: 'Share Tech Mono', 'JetBrains Mono', monospace;
   --radius: 0.4rem;
   --shadow-2xs: 0 0 10px rgba(0,255,180,0.05);
   --shadow-xs: 0 0 10px rgba(0,255,180,0.05);
@@ -116,46 +119,257 @@
   --muted-border: hsl(var(--muted));
   --accent-border: hsl(var(--accent));
   --destructive-border: hsl(var(--destructive));
+
+  --accent-color: hsl(168 100% 50%);
+  --accent-glow: rgba(0,255,180,0.4);
+  --card-bg: rgba(15, 20, 35, 0.85);
+  --card-border-color: rgba(0, 255, 180, 0.12);
+  --card-shadow: 0 0 20px rgba(0, 255, 180, 0.05), inset 0 1px 0 rgba(0, 255, 180, 0.08);
+  --grid-color: rgba(0,255,180,0.03);
+  --header-bg: linear-gradient(90deg, hsl(222 47% 5%), hsl(168 80% 8%), hsl(222 47% 5%));
+  --header-border: rgba(0,255,180,0.2);
+  --select-bg: rgba(0,0,0,0.7);
+  --select-color: hsl(180 60% 70%);
+}
+
+/* ============================================================
+   DARK / BLACK THEME
+   ============================================================ */
+[data-theme="dark"] {
+  --background: 0 0% 4%;
+  --foreground: 0 0% 92%;
+  --border: 0 0% 15%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 90%;
+  --card-border: 0 0% 15%;
+  --sidebar: 0 0% 3%;
+  --sidebar-foreground: 0 0% 80%;
+  --sidebar-border: 0 0% 12%;
+  --sidebar-primary: 0 0% 90%;
+  --sidebar-primary-foreground: 0 0% 4%;
+  --sidebar-accent: 0 0% 12%;
+  --sidebar-accent-foreground: 0 0% 80%;
+  --sidebar-ring: 0 0% 80%;
+  --popover: 0 0% 7%;
+  --popover-foreground: 0 0% 90%;
+  --popover-border: 0 0% 15%;
+  --primary: 45 100% 55%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 0 0% 80%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 50%;
+  --accent: 45 100% 55%;
+  --accent-foreground: 0 0% 4%;
+  --destructive: 0 80% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 0 0% 15%;
+  --ring: 45 100% 55%;
+  --chart-1: 45 100% 55%;
+  --chart-2: 168 100% 50%;
+  --chart-3: 200 100% 55%;
+  --chart-4: 270 80% 65%;
+  --chart-5: 0 90% 55%;
+  --app-font-sans: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+  --app-font-mono: 'Fira Code', 'JetBrains Mono', monospace;
+
+  --accent-color: hsl(45 100% 55%);
+  --accent-glow: rgba(255,200,0,0.3);
+  --card-bg: rgba(12, 12, 12, 0.95);
+  --card-border-color: rgba(255,255,255,0.08);
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  --grid-color: rgba(255,255,255,0.02);
+  --header-bg: linear-gradient(90deg, #080808, #101010, #080808);
+  --header-border: rgba(255,255,255,0.1);
+  --select-bg: #111;
+  --select-color: #e0e0e0;
+}
+
+/* ============================================================
+   LIGHT / WHITE THEME
+   ============================================================ */
+[data-theme="light"] {
+  --background: 220 20% 97%;
+  --foreground: 220 30% 12%;
+  --border: 220 15% 85%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 30% 12%;
+  --card-border: 220 15% 88%;
+  --sidebar: 220 15% 95%;
+  --sidebar-foreground: 220 30% 20%;
+  --sidebar-border: 220 15% 85%;
+  --sidebar-primary: 221 83% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 15% 90%;
+  --sidebar-accent-foreground: 220 30% 20%;
+  --sidebar-ring: 221 83% 53%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 30% 12%;
+  --popover-border: 220 15% 85%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 15% 92%;
+  --secondary-foreground: 220 30% 20%;
+  --muted: 220 15% 94%;
+  --muted-foreground: 220 15% 45%;
+  --accent: 221 83% 53%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 220 15% 88%;
+  --ring: 221 83% 53%;
+  --chart-1: 221 83% 53%;
+  --chart-2: 168 80% 40%;
+  --chart-3: 45 90% 45%;
+  --chart-4: 270 70% 55%;
+  --chart-5: 0 80% 50%;
+  --app-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --app-font-mono: 'Fira Code', 'Courier New', monospace;
+
+  --accent-color: hsl(221 83% 53%);
+  --accent-glow: rgba(59,130,246,0.3);
+  --card-bg: rgba(255,255,255,0.95);
+  --card-border-color: rgba(0,0,0,0.08);
+  --card-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04);
+  --grid-color: rgba(0,0,0,0.02);
+  --header-bg: linear-gradient(90deg, #f8f9fa, #ffffff, #f8f9fa);
+  --header-border: rgba(0,0,0,0.1);
+  --select-bg: #fff;
+  --select-color: #222;
 }
 
 @layer base {
   * { @apply border-border; }
   body { @apply font-mono antialiased bg-background text-foreground; }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: hsl(222 47% 6%); }
-  ::-webkit-scrollbar-thumb { background: hsl(168 100% 30%); border-radius: 2px; }
-  ::-webkit-scrollbar-thumb:hover { background: hsl(168 100% 50%); }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
+  ::-webkit-scrollbar-thumb { background: var(--accent-color); border-radius: 2px; opacity: 0.5; }
 }
 
-/* Cyber grid background */
+/* ============================================================
+   CYBER GRID BACKGROUND (per theme)
+   ============================================================ */
 .cyber-grid {
-  background-color: hsl(222 47% 6%);
+  background-color: hsl(var(--background));
   background-image:
-    linear-gradient(rgba(0,255,180,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,180,0.03) 1px, transparent 1px);
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
   background-size: 40px 40px;
 }
 
-/* Neon glow effects */
-.neon-green { color: hsl(168 100% 50%); text-shadow: 0 0 10px hsl(168 100% 50% / 0.8); }
-.neon-red { color: hsl(0 90% 60%); text-shadow: 0 0 10px hsl(0 90% 60% / 0.8); }
-.neon-blue { color: hsl(200 100% 60%); text-shadow: 0 0 10px hsl(200 100% 60% / 0.8); }
-.neon-yellow { color: hsl(45 100% 60%); text-shadow: 0 0 10px hsl(45 100% 60% / 0.8); }
+/* ============================================================
+   NEON GLOW — adapts per theme
+   ============================================================ */
+[data-theme="cyber"] .neon-green { color: hsl(168 100% 50%); text-shadow: 0 0 10px hsl(168 100% 50% / 0.8); }
+[data-theme="cyber"] .neon-red   { color: hsl(0 90% 60%); text-shadow: 0 0 10px hsl(0 90% 60% / 0.8); }
+[data-theme="cyber"] .neon-blue  { color: hsl(200 100% 60%); text-shadow: 0 0 10px hsl(200 100% 60% / 0.8); }
+[data-theme="cyber"] .neon-yellow { color: hsl(45 100% 60%); text-shadow: 0 0 10px hsl(45 100% 60% / 0.8); }
 
-/* Glass card */
+[data-theme="dark"] .neon-green  { color: hsl(45 100% 55%); text-shadow: 0 0 8px hsl(45 100% 55% / 0.6); }
+[data-theme="dark"] .neon-red    { color: hsl(0 80% 60%); text-shadow: 0 0 6px hsl(0 80% 60% / 0.5); }
+[data-theme="dark"] .neon-blue   { color: hsl(200 90% 65%); }
+[data-theme="dark"] .neon-yellow { color: hsl(45 100% 55%); text-shadow: 0 0 8px hsl(45 100% 55% / 0.6); }
+
+[data-theme="light"] .neon-green  { color: hsl(160 70% 35%); text-shadow: none; font-weight: 700; }
+[data-theme="light"] .neon-red    { color: hsl(0 75% 45%); text-shadow: none; font-weight: 700; }
+[data-theme="light"] .neon-blue   { color: hsl(221 83% 53%); text-shadow: none; }
+[data-theme="light"] .neon-yellow { color: hsl(35 90% 42%); text-shadow: none; font-weight: 700; }
+
+/* ============================================================
+   GLASS CARD — adapts per theme
+   ============================================================ */
 .glass-card {
-  background: rgba(15, 20, 35, 0.85);
+  background: var(--card-bg);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(0, 255, 180, 0.12);
-  box-shadow: 0 0 20px rgba(0, 255, 180, 0.05), inset 0 1px 0 rgba(0, 255, 180, 0.08);
+  border: 1px solid var(--card-border-color);
+  box-shadow: var(--card-shadow);
 }
 
 .glass-card-hover:hover {
-  border-color: rgba(0, 255, 180, 0.25);
-  box-shadow: 0 0 25px rgba(0, 255, 180, 0.1), inset 0 1px 0 rgba(0, 255, 180, 0.12);
+  border-color: var(--accent-color);
+  opacity: 0.9;
 }
 
-/* Ticker animation */
+[data-theme="light"] .glass-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+}
+
+[data-theme="dark"] .glass-card {
+  background: #0d0d0d;
+  border: 1px solid #222;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+
+/* ============================================================
+   TERMINAL HEADER
+   ============================================================ */
+.terminal-header {
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--header-border);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+}
+
+[data-theme="light"] .terminal-header {
+  background: linear-gradient(90deg, #f8f9fa, #fff, #f8f9fa);
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] .terminal-header {
+  background: #080808;
+  border-bottom: 1px solid #1a1a1a;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.8);
+}
+
+/* ============================================================
+   CYBER THEME 3D EFFECTS
+   ============================================================ */
+[data-theme="cyber"] .glass-card {
+  background: rgba(10, 15, 28, 0.88);
+  border: 1px solid rgba(0,255,180,0.12);
+  box-shadow:
+    0 0 20px rgba(0,255,180,0.05),
+    inset 0 1px 0 rgba(0,255,180,0.08),
+    0 4px 24px rgba(0,0,0,0.4);
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+[data-theme="cyber"] .glass-card-hover:hover {
+  transform: translateY(-1px) rotateX(0.5deg);
+  box-shadow:
+    0 0 30px rgba(0,255,180,0.12),
+    inset 0 1px 0 rgba(0,255,180,0.15),
+    0 8px 32px rgba(0,0,0,0.5);
+  border-color: rgba(0,255,180,0.25);
+}
+
+[data-theme="cyber"] .gradient-text {
+  background: linear-gradient(90deg, hsl(168 100% 50%), hsl(200 100% 60%), hsl(168 100% 50%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="dark"] .gradient-text {
+  background: linear-gradient(90deg, hsl(45 100% 60%), hsl(0 0% 90%), hsl(45 100% 60%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="light"] .gradient-text {
+  background: linear-gradient(90deg, hsl(221 83% 45%), hsl(200 90% 50%), hsl(221 83% 45%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   TICKER ANIMATION
+   ============================================================ */
 @keyframes ticker {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
@@ -167,16 +381,20 @@
   animation-play-state: paused;
 }
 
-/* Pulse dot */
+/* ============================================================
+   PULSE DOT
+   ============================================================ */
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 6px hsl(168 100% 50%); }
-  50% { opacity: 0.5; box-shadow: 0 0 2px hsl(168 100% 50%); }
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px currentColor; }
+  50% { opacity: 0.5; box-shadow: 0 0 2px currentColor; }
 }
 .pulse-dot {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
-/* Up/down flash */
+/* ============================================================
+   FLASH ANIMATIONS
+   ============================================================ */
 @keyframes flash-green {
   0% { background-color: rgba(0,255,180,0.25); }
   100% { background-color: transparent; }
@@ -188,33 +406,20 @@
 .flash-up { animation: flash-green 0.5s ease-out; }
 .flash-down { animation: flash-red 0.5s ease-out; }
 
-/* Scanline overlay */
-.scanlines::after {
-  content: '';
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,0,0,0.03) 2px,
-    rgba(0,0,0,0.03) 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* Terminal header glow */
-.terminal-header {
-  background: linear-gradient(90deg, hsl(222 47% 5%), hsl(168 80% 8%), hsl(222 47% 5%));
-  border-bottom: 1px solid rgba(0, 255, 180, 0.2);
-  box-shadow: 0 2px 20px rgba(0, 255, 180, 0.08);
-}
-
-/* Status indicators */
+/* ============================================================
+   STATUS INDICATORS
+   ============================================================ */
 .status-live {
   background: hsl(168 100% 50%);
   box-shadow: 0 0 6px hsl(168 100% 50%);
+}
+[data-theme="dark"] .status-live {
+  background: hsl(45 100% 55%);
+  box-shadow: 0 0 6px hsl(45 100% 55%);
+}
+[data-theme="light"] .status-live {
+  background: hsl(160 70% 40%);
+  box-shadow: none;
 }
 .status-warning {
   background: hsl(45 100% 55%);
@@ -225,34 +430,83 @@
   box-shadow: 0 0 6px hsl(0 90% 55%);
 }
 
-/* Nav active */
+/* ============================================================
+   NAV ACTIVE
+   ============================================================ */
 .nav-active {
-  color: hsl(168 100% 50%);
-  border-bottom: 2px solid hsl(168 100% 50%);
+  color: var(--accent-color);
+  border-bottom: 2px solid var(--accent-color);
+}
+[data-theme="cyber"] .nav-active {
   text-shadow: 0 0 8px hsl(168 100% 50% / 0.6);
 }
 
-/* Gradient text */
-.gradient-text {
-  background: linear-gradient(90deg, hsl(168 100% 50%), hsl(200 100% 60%), hsl(168 100% 50%));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* OI bar */
+/* ============================================================
+   OI BARS & TABLE
+   ============================================================ */
 .oi-bar-call { background: linear-gradient(90deg, rgba(0,255,180,0.6), rgba(0,255,180,0.15)); }
-.oi-bar-put { background: linear-gradient(270deg, rgba(255,80,80,0.6), rgba(255,80,80,0.15)); }
+.oi-bar-put  { background: linear-gradient(270deg, rgba(255,80,80,0.6), rgba(255,80,80,0.15)); }
+.table-row-hover:hover { background: rgba(0,255,180,0.03); }
+[data-theme="light"] .table-row-hover:hover { background: rgba(59,130,246,0.04); }
+[data-theme="dark"]  .table-row-hover:hover { background: rgba(255,255,255,0.03); }
 
-/* Table rows */
-.table-row-hover:hover { background: rgba(0,255,180,0.04); }
-
-/* Kill switch */
-.kill-switch {
-  background: linear-gradient(135deg, hsl(0 90% 20%), hsl(0 90% 15%));
-  border: 1px solid hsl(0 90% 45%);
-  box-shadow: 0 0 15px rgba(255,50,50,0.3);
+/* ============================================================
+   SELECT (theme-aware)
+   ============================================================ */
+select, textarea, input {
+  background: var(--select-bg) !important;
+  color: var(--select-color) !important;
 }
-.kill-switch:hover {
-  box-shadow: 0 0 25px rgba(255,50,50,0.5);
+
+/* ============================================================
+   SCANLINE (cyber only)
+   ============================================================ */
+[data-theme="cyber"] .scanlines::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.025) 2px,
+    rgba(0,0,0,0.025) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ============================================================
+   LIGHT THEME — card text overrides
+   ============================================================ */
+[data-theme="light"] body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1a1a2e;
+}
+[data-theme="light"] .text-\[hsl\(220\,20\%\,35\%\)\],
+[data-theme="light"] .text-\[hsl\(220\,20\%\,38\%\)\],
+[data-theme="light"] .text-\[hsl\(220\,20\%\,40\%\)\],
+[data-theme="light"] .text-\[hsl\(220\,20\%\,42\%\)\],
+[data-theme="light"] .text-\[hsl\(220\,20\%\,45\%\)\],
+[data-theme="light"] .text-\[hsl\(220\,20\%\,50\%\)\] {
+  color: #555 !important;
+}
+[data-theme="light"] .text-\[hsl\(180\,50\%\,70\%\)\],
+[data-theme="light"] .text-\[hsl\(180\,40\%\,65\%\)\],
+[data-theme="light"] .text-\[hsl\(180\,60\%\,75\%\)\],
+[data-theme="light"] .text-\[hsl\(180\,60\%\,80\%\)\] {
+  color: #2563eb !important;
+}
+[data-theme="light"] .text-\[hsl\(180\,40\%\,60\%\)\] {
+  color: #374151 !important;
+}
+[data-theme="dark"] .text-\[hsl\(220\,20\%\,35\%\)\],
+[data-theme="dark"] .text-\[hsl\(220\,20\%\,38\%\)\],
+[data-theme="dark"] .text-\[hsl\(220\,20\%\,40\%\)\] {
+  color: #777 !important;
+}
+[data-theme="dark"] .text-\[hsl\(180\,50\%\,70\%\)\],
+[data-theme="dark"] .text-\[hsl\(180\,40\%\,65\%\)\],
+[data-theme="dark"] .text-\[hsl\(180\,60\%\,75\%\)\] {
+  color: #ccc !important;
 }

@@ -27,23 +27,32 @@ const NIFTY50_STOCKS = [
   "ULTRACEMCO.NS","HCLTECH.NS","ASIANPAINT.NS","TATAMOTORS.NS","SUNPHARMA.NS",
 ];
 
-const AI_SIGNALS = [
-  { symbol: "NIFTY 50", action: "BUY" as const, entry: "24,450", sl: "24,200", target: "24,900", confidence: 87, type: "F&O", reason: "Bullish engulfing on daily, RSI 58, above VWAP, call OI buildup", indicators: "RSI: 58 | MACD: +12.4 | VWAP: 24,380" },
-  { symbol: "BANK NIFTY", action: "BUY" as const, entry: "52,100", sl: "51,700", target: "53,000", confidence: 79, type: "F&O", reason: "Golden cross EMA20/50, strong FII inflow, PCR > 1.3", indicators: "RSI: 62 | EMA20/50 Cross | PCR: 1.32" },
-  { symbol: "RELIANCE", action: "SELL" as const, entry: "2,940", sl: "2,975", target: "2,870", confidence: 72, type: "Stocks", reason: "Bearish MACD cross, resistance at 2,960, heavy call writing", indicators: "RSI: 67 | MACD: -8.2 | Resistance: 2,960" },
-  { symbol: "TCS", action: "BUY" as const, entry: "4,150", sl: "4,080", target: "4,280", confidence: 83, type: "Stocks", reason: "Morning star pattern, 52W high breakout zone, volume surge 2x", indicators: "RSI: 54 | Volume: 2.1x avg | Pattern: Morning Star" },
-  { symbol: "HDFC BANK", action: "BUY" as const, entry: "1,890", sl: "1,860", target: "1,950", confidence: 76, type: "F&O", reason: "Bullish OI buildup, call writing unwinding, VWAP support", indicators: "RSI: 57 | OI: +14% | VWAP: 1,878" },
-  { symbol: "MIDCAP NIFTY", action: "BUY" as const, entry: "52,800", sl: "52,400", target: "53,800", confidence: 69, type: "F&O", reason: "Ascending triangle breakout with volume, breadth positive 72%", indicators: "RSI: 61 | Pattern: Ascending Triangle | Breadth: 72%" },
+type Action = "BUY" | "SELL";
+
+const SIGNAL_CONFIGS = [
+  { symbol: "NIFTY 50", yahooSym: "^NSEI", action: "BUY" as Action, slPct: 0.012, t1Pct: 0.025, t2Pct: 0.045, confidence: 87, type: "F&O", reason: "Bullish engulfing on daily, RSI 58, above VWAP, call OI buildup", indicators: "RSI: 58 | MACD: +12.4 | VWAP: support" },
+  { symbol: "BANK NIFTY", yahooSym: "^NSEBANK", action: "BUY" as Action, slPct: 0.014, t1Pct: 0.028, t2Pct: 0.05, confidence: 79, type: "F&O", reason: "Golden cross EMA20/50, strong FII inflow, PCR > 1.3", indicators: "RSI: 62 | EMA20/50 Cross | PCR: 1.32" },
+  { symbol: "RELIANCE", yahooSym: "RELIANCE.NS", action: "SELL" as Action, slPct: 0.018, t1Pct: 0.025, t2Pct: 0.048, confidence: 72, type: "Stocks", reason: "Bearish MACD cross, resistance zone, heavy call writing", indicators: "RSI: 67 | MACD: bearish | Res: zone" },
+  { symbol: "TCS", yahooSym: "TCS.NS", action: "BUY" as Action, slPct: 0.017, t1Pct: 0.032, t2Pct: 0.06, confidence: 83, type: "Stocks", reason: "Morning star pattern, 52W high breakout zone, volume surge 2x", indicators: "RSI: 54 | Volume: 2.1x avg | Pattern: Morning Star" },
+  { symbol: "HDFC BANK", yahooSym: "HDFCBANK.NS", action: "BUY" as Action, slPct: 0.016, t1Pct: 0.03, t2Pct: 0.055, confidence: 76, type: "F&O", reason: "Bullish OI buildup, call writing unwinding, VWAP support", indicators: "RSI: 57 | OI: +14% | VWAP: support" },
+  { symbol: "MIDCAP NIFTY", yahooSym: "^NSEMID50", action: "BUY" as Action, slPct: 0.014, t1Pct: 0.028, t2Pct: 0.05, confidence: 69, type: "F&O", reason: "Ascending triangle breakout with volume, breadth positive 72%", indicators: "RSI: 61 | Pattern: Ascending Triangle | Breadth: 72%" },
 ];
 
 const TV_MAP: Record<string, string> = {
-  "^NSEI": "NSE:NIFTY50",
-  "^BSESN": "BSE:SENSEX",
-  "^NSEBANK": "NSE:BANKNIFTY",
-  "^GSPC": "SP:SPX",
-  "GC=F": "COMEX:GC1!",
-  "CL=F": "NYMEX:CL1!",
+  "^NSEI": "NSE:NIFTY50", "^BSESN": "BSE:SENSEX", "^NSEBANK": "NSE:BANKNIFTY",
+  "^GSPC": "SP:SPX", "GC=F": "COMEX:GC1!", "CL=F": "NYMEX:CL1!",
 };
+
+type FiiTab = "summary" | "cash" | "futures" | "breakdown";
+
+function fmt(n: number) {
+  return n.toLocaleString("en-IN");
+}
+
+function computeSignalLevels(ltp: number, action: Action, slPct: number, t1Pct: number) {
+  if (action === "BUY") return { entry: ltp, sl: ltp * (1 - slPct), t1: ltp * (1 + t1Pct) };
+  return { entry: ltp, sl: ltp * (1 + slPct), t1: ltp * (1 - t1Pct) };
+}
 
 export default function Dashboard() {
   const [indices, setIndices] = useState<Quote[]>([]);
@@ -55,14 +64,18 @@ export default function Dashboard() {
   const [signalFilter, setSignalFilter] = useState<"All" | "BUY" | "SELL">("All");
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  const [fiiTab, setFiiTab] = useState<FiiTab>("summary");
 
   const loadData = useCallback(async () => {
-    const [idxRes, stkRes, mvrRes, fiiRes, newsRes] = await Promise.allSettled([
+    const signalSymbols = SIGNAL_CONFIGS.map(s => s.yahooSym);
+    const [idxRes, stkRes, mvrRes, fiiRes, newsRes, sigRes] = await Promise.allSettled([
       fetchIndices(),
       fetchQuotes(NIFTY50_STOCKS),
       fetchMovers(),
       fetchFiiDii(),
       fetchNews(),
+      fetchQuotes(signalSymbols),
     ]);
     if (idxRes.status === "fulfilled" && idxRes.value.success) setIndices(idxRes.value.data || []);
     if (stkRes.status === "fulfilled" && stkRes.value.success) setStocks(stkRes.value.data || []);
@@ -70,6 +83,13 @@ export default function Dashboard() {
       setMovers({ topGainers: mvrRes.value.topGainers || [], topLosers: mvrRes.value.topLosers || [] });
     if (fiiRes.status === "fulfilled" && fiiRes.value.success) setFiiDii(fiiRes.value.data || []);
     if (newsRes.status === "fulfilled" && newsRes.value.success) setNews(newsRes.value.data || []);
+    if (sigRes.status === "fulfilled" && sigRes.value.success && sigRes.value.data) {
+      const priceMap: Record<string, number> = {};
+      for (const q of sigRes.value.data) {
+        if (q.symbol && q.regularMarketPrice) priceMap[q.symbol] = q.regularMarketPrice;
+      }
+      setLivePrices(priceMap);
+    }
     setLastUpdated(new Date());
     setLoading(false);
   }, []);
@@ -81,9 +101,16 @@ export default function Dashboard() {
   }, [loadData]);
 
   const mainIndices = indices.filter(q => ["^NSEI","^BSESN","^NSEBANK","^GSPC","GC=F","CL=F"].includes(q.symbol));
-  const filteredSignals = AI_SIGNALS.filter(s => signalFilter === "All" || s.action === signalFilter);
   const todayFii = fiiDii[0];
-  const niftyQuote = indices.find(q => q.symbol === "^NSEI");
+
+  const signals = SIGNAL_CONFIGS.map(s => {
+    const ltp = livePrices[s.yahooSym];
+    const levels = ltp ? computeSignalLevels(ltp, s.action, s.slPct, s.t1Pct) : null;
+    return { ...s, ltp, levels };
+  }).filter(s => signalFilter === "All" || s.action === signalFilter);
+
+  const fmtCr = (n?: number) => n != null ? `${n >= 0 ? "+" : ""}₹${fmt(Math.abs(Math.round(n)))}Cr` : "—";
+  const netColor = (n?: number) => !n ? "" : n >= 0 ? "neon-green" : "neon-red";
 
   return (
     <div className="min-h-screen cyber-grid">
@@ -96,7 +123,7 @@ export default function Dashboard() {
             <p className="text-[9px] text-[hsl(220,20%,35%)]">Live NSE • BSE • Global Markets • AI Signals • FII/DII Flow</p>
           </div>
           <div className="flex items-center gap-3 text-[9px]">
-            <span className="text-[hsl(220,20%,35%)]">SYNC: <span className="text-[hsl(168,100%,45%)]">{lastUpdated.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" })}</span></span>
+            <span className="text-[hsl(220,20%,35%)]">SYNC: <span className="neon-green">{lastUpdated.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" })}</span></span>
             <button onClick={loadData} className="px-2 py-1 rounded text-[9px] bg-[rgba(0,255,180,0.1)] border border-[rgba(0,255,180,0.2)] neon-green hover:bg-[rgba(0,255,180,0.2)]">↺ REFRESH</button>
           </div>
         </div>
@@ -112,7 +139,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Main grid: Chart + FII/DII + Signals */}
+        {/* Main grid */}
         <div className="grid grid-cols-12 gap-3">
 
           {/* Chart - 8 cols */}
@@ -120,8 +147,8 @@ export default function Dashboard() {
             <div className="glass-card rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
                 <div className="flex items-center gap-2">
-                  <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">LIVE CHART</span>
-                  <span className="text-[8px] text-[hsl(220,20%,38%)]">RSI • MACD • BB</span>
+                  <span className="text-[9px] font-bold neon-green">LIVE CHART</span>
+                  <span className="text-[8px] text-[hsl(220,20%,38%)]">EMA20 • EMA50 • VWAP • BB</span>
                 </div>
                 <div className="flex gap-1">
                   {[["^NSEI","NIFTY"],["^BSESN","SENSEX"],["^NSEBANK","BANK NF"],["GC=F","GOLD"],["CL=F","OIL"]].map(([sym, label]) => (
@@ -132,59 +159,151 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-              <TradingViewWidget symbol={selectedSymbol} height={380} />
+              <TradingViewWidget symbol={selectedSymbol} height={360} showAnalysis={true} showSymbolSelect={true} />
             </div>
 
-            {/* FII/DII Flow */}
+            {/* FII/DII Flow — Full Breakdown */}
             <div className="glass-card rounded-lg p-3">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-bold text-[hsl(168,100%,50%)] tracking-wider">FII / DII INSTITUTIONAL FLOW</span>
-                {todayFii && (
-                  <div className="flex items-center gap-3 text-[8px]">
-                    <span className={todayFii.fiiNet >= 0 ? "neon-green" : "neon-red"}>
-                      FII: {todayFii.fiiNet >= 0 ? "+" : "-"}₹{Math.abs(todayFii.fiiNet).toLocaleString("en-IN")}Cr
-                    </span>
-                    <span className={todayFii.diiNet >= 0 ? "neon-green" : "neon-red"}>
-                      DII: {todayFii.diiNet >= 0 ? "+" : "-"}₹{Math.abs(todayFii.diiNet).toLocaleString("en-IN")}Cr
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-bold neon-green tracking-wider">FII / DII INSTITUTIONAL FLOW</span>
+                  {todayFii && (
+                    <div className="flex items-center gap-3 text-[8px]">
+                      <span className={todayFii.fiiNet >= 0 ? "neon-green" : "neon-red"}>
+                        FII: {todayFii.fiiNet >= 0 ? "+" : ""}₹{fmt(Math.abs(todayFii.fiiNet))}Cr
+                      </span>
+                      <span className={todayFii.diiNet >= 0 ? "neon-green" : "neon-red"}>
+                        DII: {todayFii.diiNet >= 0 ? "+" : ""}₹{fmt(Math.abs(todayFii.diiNet))}Cr
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-1">
+                  {(["summary","cash","futures","breakdown"] as FiiTab[]).map(t => (
+                    <button key={t} onClick={() => setFiiTab(t)}
+                      className={`px-2 py-0.5 rounded text-[7px] font-bold tracking-wider ${fiiTab === t ? "bg-[rgba(0,255,180,0.2)] neon-green border border-[rgba(0,255,180,0.4)]" : "text-[hsl(220,20%,38%)]"}`}>
+                      {t.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="overflow-auto">
-                <table className="w-full text-[8px]">
-                  <thead>
-                    <tr className="text-[hsl(220,20%,35%)]">
-                      {["DATE","FII BUY","FII SELL","FII NET","DII BUY","DII SELL","DII NET","NIFTY %"].map(h => (
-                        <th key={h} className="px-2 py-1 text-right first:text-left font-bold tracking-wider">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(fiiDii.length ? fiiDii : Array(5).fill(null)).map((row, i) => (
-                      <tr key={i} className="border-t border-[rgba(255,255,255,0.03)]">
-                        <td className="px-2 py-1 text-[hsl(180,40%,60%)]">{row?.date || "—"}</td>
-                        <td className="px-2 py-1 text-right text-[hsl(168,80%,45%)] tabular-nums">{row ? `₹${row.fiiBuy.toLocaleString("en-IN")}Cr` : "—"}</td>
-                        <td className="px-2 py-1 text-right text-[hsl(0,80%,55%)] tabular-nums">{row ? `₹${row.fiiSell.toLocaleString("en-IN")}Cr` : "—"}</td>
-                        <td className={`px-2 py-1 text-right tabular-nums font-bold ${!row ? "" : row.fiiNet >= 0 ? "neon-green" : "neon-red"}`}>{row ? `${row.fiiNet >= 0 ? "+" : ""}₹${Math.abs(row.fiiNet).toLocaleString("en-IN")}Cr` : "—"}</td>
-                        <td className="px-2 py-1 text-right text-[hsl(168,80%,45%)] tabular-nums">{row ? `₹${row.diiBuy.toLocaleString("en-IN")}Cr` : "—"}</td>
-                        <td className="px-2 py-1 text-right text-[hsl(0,80%,55%)] tabular-nums">{row ? `₹${row.diiSell.toLocaleString("en-IN")}Cr` : "—"}</td>
-                        <td className={`px-2 py-1 text-right tabular-nums font-bold ${!row ? "" : row.diiNet >= 0 ? "neon-green" : "neon-red"}`}>{row ? `${row.diiNet >= 0 ? "+" : ""}₹${Math.abs(row.diiNet).toLocaleString("en-IN")}Cr` : "—"}</td>
-                        <td className={`px-2 py-1 text-right tabular-nums ${!row ? "" : row.niftyChg >= 0 ? "neon-green" : "neon-red"}`}>{row ? `${row.niftyChg >= 0 ? "+" : ""}${row.niftyChg?.toFixed(2)}%` : "—"}</td>
+
+              {fiiTab === "summary" && (
+                <div className="overflow-auto">
+                  <table className="w-full text-[8px]">
+                    <thead>
+                      <tr className="text-[hsl(220,20%,35%)]">
+                        {["DATE","FII BUY","FII SELL","FII NET","DII BUY","DII SELL","DII NET","NIFTY %"].map(h => (
+                          <th key={h} className="px-2 py-1 text-right first:text-left font-bold tracking-wider">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {(fiiDii.length ? fiiDii : Array(5).fill(null)).map((row, i) => (
+                        <tr key={i} className="border-t border-[rgba(255,255,255,0.03)] table-row-hover">
+                          <td className="px-2 py-1 text-[hsl(180,40%,60%)]">{row?.date || "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(168,80%,45%)] tabular-nums">{row ? `₹${fmt(row.fiiBuy)}Cr` : "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(0,80%,55%)] tabular-nums">{row ? `₹${fmt(row.fiiSell)}Cr` : "—"}</td>
+                          <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.fiiNet)}`}>{row ? fmtCr(row.fiiNet) : "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(168,80%,45%)] tabular-nums">{row ? `₹${fmt(row.diiBuy)}Cr` : "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(0,80%,55%)] tabular-nums">{row ? `₹${fmt(row.diiSell)}Cr` : "—"}</td>
+                          <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.diiNet)}`}>{row ? fmtCr(row.diiNet) : "—"}</td>
+                          <td className={`px-2 py-1 text-right tabular-nums ${netColor(row?.niftyChg)}`}>{row ? `${row.niftyChg >= 0 ? "+" : ""}${row.niftyChg?.toFixed(2)}%` : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {fiiTab === "cash" && (
+                <div className="overflow-auto">
+                  <table className="w-full text-[8px]">
+                    <thead>
+                      <tr className="text-[hsl(220,20%,35%)]">
+                        {["DATE","FII CASH BUY","FII CASH SELL","FII CASH NET","DII CASH BUY","DII CASH SELL","DII CASH NET"].map(h => (
+                          <th key={h} className="px-2 py-1 text-right first:text-left font-bold tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(fiiDii.length ? fiiDii : Array(5).fill(null)).map((row, i) => (
+                        <tr key={i} className="border-t border-[rgba(255,255,255,0.03)] table-row-hover">
+                          <td className="px-2 py-1 text-[hsl(180,40%,60%)]">{row?.date || "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(168,80%,45%)] tabular-nums">{row ? `₹${fmt(row.fiiBuyCash ?? 0)}Cr` : "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(0,80%,55%)] tabular-nums">{row ? `₹${fmt(row.fiiSellCash ?? 0)}Cr` : "—"}</td>
+                          <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.fiiNetCash)}`}>{row ? fmtCr(row.fiiNetCash) : "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(168,80%,45%)] tabular-nums">{row ? `₹${fmt(row.diiBuyCash ?? 0)}Cr` : "—"}</td>
+                          <td className="px-2 py-1 text-right text-[hsl(0,80%,55%)] tabular-nums">{row ? `₹${fmt(row.diiSellCash ?? 0)}Cr` : "—"}</td>
+                          <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.diiNetCash)}`}>{row ? fmtCr(row.diiNetCash) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {fiiTab === "futures" && (
+                <div className="overflow-auto">
+                  <table className="w-full text-[8px]">
+                    <thead>
+                      <tr className="text-[hsl(220,20%,35%)]">
+                        {["DATE","FII IDX FUT NET","FII IDX OPT NET","FII STK FUT NET","FII STK OPT NET","FII F&O TOTAL"].map(h => (
+                          <th key={h} className="px-2 py-1 text-right first:text-left font-bold tracking-wider">{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(fiiDii.length ? fiiDii : Array(5).fill(null)).map((row, i) => {
+                        const fnoTotal = row ? (row.fiiNetIdxFut ?? 0) + (row.fiiNetIdxOpt ?? 0) + (row.fiiNetStkFut ?? 0) + (row.fiiNetStkOpt ?? 0) : 0;
+                        return (
+                          <tr key={i} className="border-t border-[rgba(255,255,255,0.03)] table-row-hover">
+                            <td className="px-2 py-1 text-[hsl(180,40%,60%)]">{row?.date || "—"}</td>
+                            <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.fiiNetIdxFut)}`}>{row ? fmtCr(row.fiiNetIdxFut) : "—"}</td>
+                            <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.fiiNetIdxOpt)}`}>{row ? fmtCr(row.fiiNetIdxOpt) : "—"}</td>
+                            <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.fiiNetStkFut)}`}>{row ? fmtCr(row.fiiNetStkFut) : "—"}</td>
+                            <td className={`px-2 py-1 text-right tabular-nums font-bold ${netColor(row?.fiiNetStkOpt)}`}>{row ? fmtCr(row.fiiNetStkOpt) : "—"}</td>
+                            <td className={`px-2 py-1 text-right tabular-nums font-bold text-base ${netColor(fnoTotal)}`}>{row ? fmtCr(fnoTotal) : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {fiiTab === "breakdown" && todayFii && (
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mt-1">
+                  {[
+                    { label: "CASH MARKET", fii: todayFii.fiiNetCash, dii: todayFii.diiNetCash, icon: "💰" },
+                    { label: "INDEX FUTURES", fii: todayFii.fiiNetIdxFut, dii: null, icon: "📈" },
+                    { label: "INDEX OPTIONS", fii: todayFii.fiiNetIdxOpt, dii: null, icon: "⛓" },
+                    { label: "STOCK FUTURES", fii: todayFii.fiiNetStkFut, dii: null, icon: "📊" },
+                    { label: "STOCK OPTIONS", fii: todayFii.fiiNetStkOpt, dii: null, icon: "🎯" },
+                  ].map(({ label, fii, dii, icon }) => (
+                    <div key={label} className="rounded-lg p-2.5 border" style={{ borderColor: "var(--card-border-color)", background: "rgba(0,0,0,0.3)" }}>
+                      <div className="text-[7px] text-[hsl(220,20%,38%)] mb-1 font-bold tracking-wider">{icon} {label}</div>
+                      <div className={`text-[9px] font-bold tabular-nums ${netColor(fii ?? 0)}`}>FII: {fii != null ? fmtCr(fii) : "—"}</div>
+                      {dii != null && <div className={`text-[8px] font-bold tabular-nums ${netColor(dii)}`}>DII: {fmtCr(dii)}</div>}
+                      <div className={`text-[8px] font-bold mt-0.5 ${(fii ?? 0) >= 0 ? "neon-green" : "neon-red"}`}>{(fii ?? 0) >= 0 ? "▲ BULLISH" : "▼ BEARISH"}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Right panel: Signals + News */}
+          {/* Right panel: Live Signals + News */}
           <div className="col-span-12 lg:col-span-4 space-y-3">
 
-            {/* AI Trade Signals */}
+            {/* AI Trade Signals — Real Prices */}
             <div className="glass-card rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
-                <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">ALADDIN AI SIGNALS</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[9px] font-bold neon-green">ALADDIN AI SIGNALS</span>
+                  <div className="w-1.5 h-1.5 rounded-full status-live pulse-dot"></div>
+                  <span className="text-[7px] neon-green">LIVE</span>
+                </div>
                 <div className="flex gap-1">
                   {(["All","BUY","SELL"] as const).map(f => (
                     <button key={f} onClick={() => setSignalFilter(f)}
@@ -194,8 +313,8 @@ export default function Dashboard() {
                   ))}
                 </div>
               </div>
-              <div className="p-2 space-y-2 overflow-auto" style={{ maxHeight: 360 }}>
-                {filteredSignals.map((s, i) => (
+              <div className="p-2 space-y-2 overflow-auto" style={{ maxHeight: 400 }}>
+                {signals.map((s, i) => (
                   <div key={i} className={`rounded p-2.5 border ${s.action === "BUY" ? "border-[rgba(0,255,180,0.15)] bg-[rgba(0,255,180,0.03)]" : "border-[rgba(255,80,80,0.15)] bg-[rgba(255,80,80,0.03)]"}`}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-1.5">
@@ -203,13 +322,20 @@ export default function Dashboard() {
                         <span className="text-[9px] font-bold text-[hsl(180,60%,75%)]">{s.symbol}</span>
                         <span className="text-[7px] text-[hsl(220,20%,38%)]">{s.type}</span>
                       </div>
-                      <span className={`text-[9px] font-bold ${s.confidence >= 80 ? "neon-green" : "neon-yellow"}`}>{s.confidence}%</span>
+                      <div className="text-right">
+                        {s.ltp && <div className="text-[8px] font-bold tabular-nums text-[hsl(200,80%,60%)]">₹{s.ltp.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</div>}
+                        <span className={`text-[9px] font-bold ${s.confidence >= 80 ? "neon-green" : "neon-yellow"}`}>{s.confidence}%</span>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-3 gap-1 text-[8px] mb-1">
-                      <div><span className="text-[hsl(220,20%,40%)]">ENTRY </span><span className="text-[hsl(180,50%,70%)]">{s.entry}</span></div>
-                      <div><span className="text-[hsl(0,80%,55%)]">SL </span><span className="neon-red">{s.sl}</span></div>
-                      <div><span className="text-[hsl(168,80%,45%)]">TGT </span><span className="neon-green">{s.target}</span></div>
-                    </div>
+                    {s.levels ? (
+                      <div className="grid grid-cols-3 gap-1 text-[8px] mb-1">
+                        <div><span className="text-[hsl(220,20%,40%)]">ENTRY </span><span className="text-[hsl(180,50%,70%)] tabular-nums">₹{s.levels.entry.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></div>
+                        <div><span className="neon-red">SL </span><span className="neon-red tabular-nums">₹{s.levels.sl.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></div>
+                        <div><span className="neon-green">TGT </span><span className="neon-green tabular-nums">₹{s.levels.t1.toLocaleString("en-IN", { minimumFractionDigits: 2 })}</span></div>
+                      </div>
+                    ) : (
+                      <div className="text-[7px] text-[hsl(220,20%,35%)] mb-1 animate-pulse">Fetching live price...</div>
+                    )}
                     <div className="text-[7px] text-[hsl(220,20%,38%)] mb-1">{s.reason}</div>
                     <div className="text-[7px] text-[hsl(200,80%,50%)] mb-1.5">{s.indicators}</div>
                     <div className="h-1 bg-[rgba(255,255,255,0.05)] rounded-full">
@@ -223,23 +349,21 @@ export default function Dashboard() {
             {/* Live News */}
             <div className="glass-card rounded-lg overflow-hidden">
               <div className="flex items-center justify-between px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
-                <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">LIVE NEWS FEED</span>
+                <span className="text-[9px] font-bold neon-green">LIVE NEWS FEED</span>
                 <span className="text-[7px] text-[hsl(220,20%,35%)]">MC • ET • MINT • BS</span>
               </div>
               <div className="p-2 space-y-1.5 overflow-auto" style={{ maxHeight: 280 }}>
                 {(news.length ? news : Array(6).fill(null)).map((n, i) => (
                   <div key={i} className="flex gap-2 p-1.5 rounded border border-[rgba(255,255,255,0.03)] bg-[rgba(255,255,255,0.01)] hover:bg-[rgba(0,255,180,0.03)]">
                     {n ? (
-                      <>
-                        <div className="flex-1 min-w-0">
-                          <a href={n.link} target="_blank" rel="noreferrer" className="text-[8px] text-[hsl(180,50%,75%)] hover:neon-green leading-tight line-clamp-2 block">{n.title}</a>
-                          <div className="flex gap-1 mt-0.5 items-center">
-                            <span className="text-[6px] px-1 rounded bg-[rgba(0,255,180,0.08)] text-[hsl(168,80%,50%)]">{n.source}</span>
-                            <span className={`text-[6px] px-1 rounded font-bold ${n.sentiment === "BULLISH" ? "bg-[rgba(0,255,180,0.1)] neon-green" : n.sentiment === "BEARISH" ? "bg-[rgba(255,80,80,0.1)] neon-red" : "bg-[rgba(255,200,0,0.08)] text-[hsl(45,100%,55%)]"}`}>{n.sentiment}</span>
-                            <span className="text-[6px] text-[hsl(220,20%,30%)]">{timeAgo(n.pubDate)}</span>
-                          </div>
+                      <div className="flex-1 min-w-0">
+                        <a href={n.link} target="_blank" rel="noreferrer" className="text-[8px] text-[hsl(180,50%,75%)] hover:neon-green leading-tight line-clamp-2 block">{n.title}</a>
+                        <div className="flex gap-1 mt-0.5 items-center">
+                          <span className="text-[6px] px-1 rounded bg-[rgba(0,255,180,0.08)] text-[hsl(168,80%,50%)]">{n.source}</span>
+                          <span className={`text-[6px] px-1 rounded font-bold ${n.sentiment === "BULLISH" ? "bg-[rgba(0,255,180,0.1)] neon-green" : n.sentiment === "BEARISH" ? "bg-[rgba(255,80,80,0.1)] neon-red" : "bg-[rgba(255,200,0,0.08)] text-[hsl(45,100%,55%)]"}`}>{n.sentiment}</span>
+                          <span className="text-[6px] text-[hsl(220,20%,30%)]">{timeAgo(n.pubDate)}</span>
                         </div>
-                      </>
+                      </div>
                     ) : (
                       <div className="h-8 flex-1 animate-pulse bg-[rgba(0,255,180,0.03)] rounded" />
                     )}
@@ -252,16 +376,14 @@ export default function Dashboard() {
 
         {/* Bottom: Stocks + Movers */}
         <div className="grid grid-cols-12 gap-3">
-
-          {/* Stocks Table */}
           <div className="col-span-12 lg:col-span-7 glass-card rounded-lg overflow-hidden">
             <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
-              <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">NIFTY 50 — MARKET OVERVIEW</span>
+              <span className="text-[9px] font-bold neon-green">NIFTY 50 — MARKET OVERVIEW</span>
             </div>
             <div className="overflow-auto" style={{ maxHeight: 280 }}>
               <table className="w-full text-[8px]">
                 <thead className="sticky top-0">
-                  <tr className="bg-[rgba(0,0,0,0.6)]">
+                  <tr style={{ background: "rgba(0,0,0,0.7)" }}>
                     {["SYMBOL","LTP","CHANGE","CHNG%","VOLUME","HIGH","LOW","52W HIGH","52W LOW"].map(h => (
                       <th key={h} className="px-2 py-1.5 text-left text-[hsl(220,20%,38%)] font-bold tracking-wider whitespace-nowrap">{h}</th>
                     ))}
@@ -295,7 +417,7 @@ export default function Dashboard() {
           {/* Movers */}
           <div className="col-span-12 lg:col-span-5 glass-card rounded-lg overflow-hidden">
             <div className="px-3 py-2 border-b border-[rgba(0,255,180,0.1)]">
-              <span className="text-[9px] font-bold text-[hsl(168,100%,50%)]">TOP GAINERS & LOSERS</span>
+              <span className="text-[9px] font-bold neon-green">TOP GAINERS & LOSERS</span>
             </div>
             <div className="grid grid-cols-2 divide-x divide-[rgba(255,255,255,0.05)]">
               <div className="p-3">

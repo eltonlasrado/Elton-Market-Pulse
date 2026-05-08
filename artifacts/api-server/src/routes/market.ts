@@ -96,21 +96,58 @@ function generateFiiDii() {
   const days = [];
   const names = ["07 May", "06 May", "05 May", "02 May", "01 May", "30 Apr", "29 Apr", "28 Apr", "25 Apr", "24 Apr"];
   for (let i = 0; i < 10; i++) {
-    const fiiBuy = Math.round(8000 + Math.random() * 14000);
-    const fiiSell = Math.round(7000 + Math.random() * 13000);
-    const diiBuy = Math.round(6000 + Math.random() * 10000);
-    const diiSell = Math.round(5000 + Math.random() * 9000);
-    const fiiNet = fiiBuy - fiiSell;
-    const diiNet = diiBuy - diiSell;
+    // FII breakdown: Cash + Index Futures + Index Options + Stock Futures + Stock Options
+    const fiiBuyCash     = Math.round(4000 + Math.random() * 8000);
+    const fiiSellCash    = Math.round(3500 + Math.random() * 7500);
+    const fiiBuyIdxFut   = Math.round(3000 + Math.random() * 9000);
+    const fiiSellIdxFut  = Math.round(2800 + Math.random() * 8500);
+    const fiiBuyIdxOpt   = Math.round(8000 + Math.random() * 25000);
+    const fiiSellIdxOpt  = Math.round(7500 + Math.random() * 24000);
+    const fiiBuyStkFut   = Math.round(1500 + Math.random() * 5000);
+    const fiiSellStkFut  = Math.round(1400 + Math.random() * 4800);
+    const fiiBuyStkOpt   = Math.round(600 + Math.random() * 2000);
+    const fiiSellStkOpt  = Math.round(550 + Math.random() * 1900);
+
+    const fiiBuy  = fiiBuyCash + fiiBuyIdxFut + fiiBuyIdxOpt + fiiBuyStkFut + fiiBuyStkOpt;
+    const fiiSell = fiiSellCash + fiiSellIdxFut + fiiSellIdxOpt + fiiSellStkFut + fiiSellStkOpt;
+    const fiiNetCash   = fiiBuyCash - fiiSellCash;
+    const fiiNetIdxFut = fiiBuyIdxFut - fiiSellIdxFut;
+    const fiiNetIdxOpt = fiiBuyIdxOpt - fiiSellIdxOpt;
+    const fiiNetStkFut = fiiBuyStkFut - fiiSellStkFut;
+    const fiiNetStkOpt = fiiBuyStkOpt - fiiSellStkOpt;
+    const fiiNet  = fiiBuy - fiiSell;
+
+    // DII breakdown: Cash + Mutual Funds + Insurance + Others
+    const diiBuyCash   = Math.round(4000 + Math.random() * 7000);
+    const diiSellCash  = Math.round(3000 + Math.random() * 6000);
+    const diiBuyMF     = Math.round(2000 + Math.random() * 5000);
+    const diiSellMF    = Math.round(1500 + Math.random() * 4000);
+    const diiBuyIns    = Math.round(1500 + Math.random() * 4000);
+    const diiSellIns   = Math.round(1200 + Math.random() * 3500);
+
+    const diiBuy  = diiBuyCash + diiBuyMF + diiBuyIns;
+    const diiSell = diiSellCash + diiSellMF + diiSellIns;
+    const diiNetCash = diiBuyCash - diiSellCash;
+    const diiNetMF   = diiBuyMF - diiSellMF;
+    const diiNetIns  = diiBuyIns - diiSellIns;
+    const diiNet  = diiBuy - diiSell;
+
     days.push({
       date: names[i],
-      fiiBuy,
-      fiiSell,
-      fiiNet,
-      diiBuy,
-      diiSell,
-      diiNet,
+      // Totals
+      fiiBuy, fiiSell, fiiNet,
+      diiBuy, diiSell, diiNet,
       niftyChg: parseFloat(((fiiNet > 0 ? 1 : -1) * (0.3 + Math.random() * 1.8)).toFixed(2)),
+      // FII breakdown
+      fiiBuyCash, fiiSellCash, fiiNetCash,
+      fiiBuyIdxFut, fiiSellIdxFut, fiiNetIdxFut,
+      fiiBuyIdxOpt, fiiSellIdxOpt, fiiNetIdxOpt,
+      fiiBuyStkFut, fiiSellStkFut, fiiNetStkFut,
+      fiiBuyStkOpt, fiiSellStkOpt, fiiNetStkOpt,
+      // DII breakdown
+      diiBuyCash, diiSellCash, diiNetCash,
+      diiBuyMF, diiSellMF, diiNetMF,
+      diiBuyIns, diiSellIns, diiNetIns,
     });
   }
   return days;
