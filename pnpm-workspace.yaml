@@ -38,6 +38,7 @@ packages:
   - artifacts/*
   - lib/*
   - lib/integrations/*
+   - lib/market-data          # ADD THIS LINE
   - scripts
 
 catalog:
