@@ -647,6 +647,19 @@ importers:
         specifier: ^0.31.9
         version: 0.31.9
 
+        lib/market-data:
+    dependencies:
+      ws:
+        specifier: ^8.14.2
+        version: 8.20.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.3.5
+      typescript:
+        specifier: ~5.9.2
+        version: 5.9.3
+
   scripts:
     devDependencies:
       '@types/node':
