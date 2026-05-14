@@ -1,16 +1,49 @@
 {
-  "name": "workspace",
-  "version": "0.0.0",
-  "license": "MIT",
-  "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
-    "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
-  },
+  "name": "elton-market-pulse",
+  "version": "5.1.0",
+  "description": "AI-Powered Trading Terminal with Live Market Analysis and Signals",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "api:generate": "orval"
+  },
+  "keywords": [
+    "trading",
+    "stock-market",
+    "ai",
+    "live-trading",
+    "technical-analysis",
+    "stock-analysis",
+    "indian-markets",
+    "nse",
+    "bse",
+    "options",
+    "futures",
+    "signals",
+    "real-time"
+  ],
+  "author": "Elton Lasrado",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.20.0",
+    "@tanstack/react-query": "^5.0.0",
+    "express": "^4.18.0",
+    "express-ws": "^5.0.2",
+    "ws": "^8.14.0",
+    "cors": "^2.8.5",
+    "pino-http": "^8.4.0"
+  },
   "devDependencies": {
-    "typescript": "~5.9.2",
-    "prettier": "^3.8.1"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "turbo": "^1.10.0",
+    "prettier": "^3.0.0"
   }
 }

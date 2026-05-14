@@ -1,14 +1,16 @@
-import { Router, type IRouter } from "express";
-import healthRouter from "./health";
-import marketRouter from "./market";
-import newsRouter from "./news";
-import aiRouter from "./ai";
+import { Router } from 'express';
+import health from './health';
+import marketData from './marketData';
+import ai from './ai';
+import stockAnalysis from './stockAnalysis';
+import liveMarket from './liveMarket';
 
-const router: IRouter = Router();
+const router = Router();
 
-router.use(healthRouter);
-router.use(marketRouter);
-router.use(newsRouter);
-router.use(aiRouter);
+router.use('/health', health);
+router.use('/market', marketData);
+router.use('/ai', ai);
+router.use('/stock-analysis', stockAnalysis);
+router.use('/live', liveMarket);
 
 export default router;
